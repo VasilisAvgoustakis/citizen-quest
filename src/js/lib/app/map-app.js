@@ -88,10 +88,15 @@ class MapApp {
     // Input
     this.keyboardInputMgr = new KeyboardInputMgr();
     this.keyboardInputMgr.attachListeners();
-    this.keyboardInputMgr.addToggle('KeyD', () => { this.stats.togglePanel(); });
-    this.keyboardInputMgr.addToggle('KeyF', () => {
-      console.log(this.flags.dump());
-    });
+
+    if (this.config.game.devModeShortcuts !== false) {
+      this.keyboardInputMgr.addToggle('KeyD', () => {
+        this.stats.togglePanel();
+      });
+      this.keyboardInputMgr.addToggle('KeyF', () => {
+        console.log(this.flags.dump());
+      });
+    }
 
     this.seenFlags = {};
     this.flags.events.on('flag', (flagId, value, oldValue, setter) => {

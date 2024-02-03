@@ -19,6 +19,17 @@ const storylineLoader = require('./lib/loader/storyline-loader');
     const statsPanel = urlParams.get('s') || null;
     const liveTest = urlParams.get('test') || null;
     const storylineId = urlParams.get('storyline') || null;
+    // Accept a settings url param but only if it's made of alphanumeric characters, _ or -, and
+    // has a .yml extension.
+    let settingsFilename = 'settings.yml';
+    const settingsFileUnsafe = urlParams.get('settings');
+    if (urlParams.get('settings')) {
+      if (!urlParams.get('settings').match(/^[a-zA-Z0-9_-]+\.yml$/)) {
+        console.warn('Invalid settings file name. Ignoring. Use only alphanumeric characters, _ or -. and .yml extension.');
+      } else {
+        settingsFilename = settingsFileUnsafe;
+      }
+    }
 
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
     if (sentryDSN) {
@@ -34,6 +45,7 @@ const storylineLoader = require('./lib/loader/storyline-loader');
       'config/town.yml',
       'config/gamepads.yml',
       'config/storylines.yml',
+      settingsFilename,
     ]).catch((err) => {
       throw new Error(`Error loading configuration: ${err.message}`);
     });

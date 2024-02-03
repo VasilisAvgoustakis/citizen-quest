@@ -36,6 +36,8 @@ The `index.html` app accepts the following query string parameters:
 - `s`: ID of the stats panel to show (fps, render, ping). Defaults to none.
 - `t`: Time limit for the game, in remainingSeconds. Defaults to 300 remainingSeconds.
 - `test`: A live test to perform (e.g. `dialogue-responses`)
+- `settings`: The name of a settings file to load. Defaults to `settings.yml`. It must reside in the
+  root directory and have a name that only contains letters, numbers, - or _, and ends in `.yml`.
 
 ## Configuration
 
@@ -60,7 +62,8 @@ a friendly format.
 
 ## Debugging tools
 
-The following keyboard shortcuts are available in the player app:
+The following keyboard shortcuts are available in the player app if the `game.devModeShortcuts` 
+configuration key is not set to `false`:
 
 - 'd': Toggle stats panel. Each press of 'd' toggles to a different panel.
 - 'e': Ends the countdown and jumps to the game end.

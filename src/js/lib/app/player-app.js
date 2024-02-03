@@ -159,25 +159,27 @@ class PlayerApp {
   createInputMgr() {
     const keyboardInputMgr = new KeyboardInputMgr();
     keyboardInputMgr.attachListeners();
-    keyboardInputMgr.addToggle('KeyE', () => {
-      this.gameServerController.roundEnd();
-    });
-    keyboardInputMgr.addToggle('KeyF', () => {
-      console.log(this.flags.dump());
-    });
-    keyboardInputMgr.addToggle('KeyD', () => {
-      this.stats.togglePanel();
-    });
-    keyboardInputMgr.addToggle('KeyH', () => {
-      this.gameView.toggleHitboxDisplay();
-    });
-    keyboardInputMgr.addToggle('KeyX', () => {
-      if (this.pc) {
-        console.log(`x: ${this.pc.position.x}, y: ${this.pc.position.y}`);
-      } else {
-        console.log('No PC');
-      }
-    });
+    if (this.config.game.devModeShortcuts !== false) {
+      keyboardInputMgr.addToggle('KeyE', () => {
+        this.gameServerController.roundEnd();
+      });
+      keyboardInputMgr.addToggle('KeyF', () => {
+        console.log(this.flags.dump());
+      });
+      keyboardInputMgr.addToggle('KeyD', () => {
+        this.stats.togglePanel();
+      });
+      keyboardInputMgr.addToggle('KeyH', () => {
+        this.gameView.toggleHitboxDisplay();
+      });
+      keyboardInputMgr.addToggle('KeyX', () => {
+        if (this.pc) {
+          console.log(`x: ${this.pc.position.x}, y: ${this.pc.position.y}`);
+        } else {
+          console.log('No PC');
+        }
+      });
+    }
 
     const gamepadMapperConfig = this.config?.players?.[this.playerId]?.gamepadMapping ?? {};
     const gamepadInputMgr = new GamepadInputMgr(gamepadMapperConfig);
