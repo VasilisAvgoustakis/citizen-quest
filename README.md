@@ -49,6 +49,8 @@ You can override any of the configuration keys through a `settings.yml` file in 
 
 The .env file has other configuration keys that affect the environment.
 
+The `app.config.json` file in the root directory contains build-time configuration settings.
+
 ## Server APIs
 
 The server has both an HTTP and a WebSocket API. Their specifications are:

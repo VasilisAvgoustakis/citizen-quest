@@ -3,6 +3,7 @@ const Dotenv = require('dotenv-webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const appConfig = require('./app.config.json');
 
 module.exports = {
   entry: {
@@ -56,18 +57,33 @@ module.exports = {
       filename: path.resolve(__dirname, 'index.html'),
       chunks: ['default'],
       minify: true,
+      title: appConfig.title,
+      meta: {
+        title: appConfig.title,
+        description: appConfig.description,
+      },
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'src/html/player.html'),
       filename: path.resolve(__dirname, 'player.html'),
       chunks: ['player'],
       minify: true,
+      title: `Player | ${appConfig.title}`,
+      meta: {
+        title: `Player | ${appConfig.title}`,
+        description: appConfig.description,
+      },
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'src/html/map.html'),
       filename: path.resolve(__dirname, 'map.html'),
       chunks: ['map'],
       minify: true,
+      title: `Map | ${appConfig.title}`,
+      meta: {
+        title: `Map | ${appConfig.title}`,
+        description: appConfig.description,
+      }
     }),
     new CleanWebpackPlugin({
       // todo: temporary measure. Dev builds should be done without hashes in the filename.
