@@ -57,6 +57,9 @@
         "name": {
           "$ref": "#/definitions/text"
         },
+        "type": {
+          "type": "string"
+        },
         "spawn": {
           "$ref": "#/definitions/point"
         },

@@ -16,6 +16,9 @@ decision:
 prompt:
   en: "Should we celebrate cake day? Talk to people to find out."
   es: "¿Deberíamos celebrar el día de las tortas? Habla con la gente para averiguarlo."
+scenery:
+  desk:
+    spawn: { x: 20, y: 100 }
 npcs:
   mayor:
     name:
@@ -72,6 +75,7 @@ The top-level properties in a storyline are:
   the city map screen.
 - **prompt**: (text) The initial prompt that will be shown on player screens before any quests 
   become active.
+- **scenery**: (scenery) Scenery elements that are shown in the city map screen.
 - **npcs**: (npc) The npcs that participate in this story.
 - **initFlags**: (string|array) Flags that are set when the storyline starts.
 - **quests**: (quest) The quests that are available in this story.
@@ -117,16 +121,26 @@ There are three types of flags that are synchronized between clients:
   decision associated with the storyline).
 - Those beginning with `quest.`, and ending with `.done` which are used to track quest completion.
 
+### Scenery
+
+Scenery elements are used to place objects in the city map screen. They are specified through these
+properties:
+
+- **spawn**: (point) The position where the object will be spawned in the city map screen.
+- **type**: (string) The type of object that will be spawned. This is used to look up the texture
+  that will be used to render the object.
+
 ### NPCs
 
 NPCs are listed at the top level of the storyline in an object. The keys in this object are the
 IDs of the npcs. These IDs are used to refer to the NPCs in quests, and also are used to pick
-the texture that the character will be rendered with on screen.
+the texture that the character will be rendered with on screen if a type property is not set.
 
 NPCs are specified through these properties:
 
 - **name**: (text) The name of the NPC. This is displayed at the top of dialogue windows when the 
   character speaks.
+- **type**: (string) The texture to use to render the NPC. If not set, the ID is used as type.
 - **spawn**: (point) The position where the NPC will be spawned in the city map screen.
 - **dialogue**: (dialogue) The dialogues that the NPC will say when the player talks to them. 
 

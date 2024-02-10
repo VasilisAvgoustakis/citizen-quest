@@ -1,5 +1,11 @@
 {
   "frames": {
+    "invisible": {
+      "frame": {"x": 0, "y": 0, "w": 0, "h": 0},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 0, "h": 0},
+      "sourceSize": {"w": 0, "h": 0},
+      "anchor": { "x": 0, "y": 0 }
+    },
     "citizenCool": {
       "frame": {"x": 0, "y": 0, "w": 72, "h": 156},
       "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},

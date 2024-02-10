@@ -2,6 +2,7 @@ class Character {
   constructor(id, props = {}) {
     this.id = id;
     this.name = props.name || null;
+    this.type = props.type || this.id;
     this.position = { x: 0, y: 0 };
     this.speed = { x: 0, y: 0 };
     this.direction = 'e';
