@@ -1,0 +1,7 @@
+decision: "..."
+prompt: "..."
+npcs: {}
+scenery: []
+quests: {}
+ending:
+  dialogue: []

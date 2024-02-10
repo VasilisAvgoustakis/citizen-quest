@@ -12,6 +12,9 @@
     "npcs": {
       "$ref": "#/definitions/npcs"
     },
+    "scenery": {
+      "$ref": "#/definitions/scenery"
+    },
     "initFlags": {
       "$ref": "#/definitions/initFlags"
     },
@@ -63,6 +66,25 @@
       },
       "additionalProperties": false,
       "required": ["name", "spawn", "dialogue"]
+    },
+    "scenery": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/sceneryObject"
+      }
+    },
+    "sceneryObject": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "spawn": {
+          "$ref": "#/definitions/point"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["spawn"]
     },
     "quests": {
       "type": "object",

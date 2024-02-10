@@ -44568,6 +44568,7 @@ const PlayerOverlayManager = __webpack_require__(/*! ../view-html/player-overlay
 const DialogueSequencer = __webpack_require__(/*! ../model/dialogues/dialogue-sequencer */ "./src/js/lib/model/dialogues/dialogue-sequencer.js");
 const RoundTimer = __webpack_require__(/*! ../model/round-timer */ "./src/js/lib/model/round-timer.js");
 const readEnding = __webpack_require__(/*! ../model/dialogues/ending-reader */ "./src/js/lib/model/dialogues/ending-reader.js");
+const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/scenery.js");
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -44656,8 +44657,12 @@ class PlayerApp {
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
       this.gameView.removeAllNpcs();
+      this.gameView.removeAllScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline) {
+        Object.entries(storyline.scenery).forEach(([id, props]) => {
+          this.gameView.addScenery(new Scenery(id, props));
+        });
         Object.entries(storyline.npcs).forEach(([id, props]) => {
           this.gameView.addNpc(new Character(id, props));
         });
@@ -44712,17 +44717,20 @@ class PlayerApp {
     const keyboardInputMgr = new KeyboardInputMgr();
     keyboardInputMgr.attachListeners();
     if (this.config.game.devModeShortcuts !== false) {
+      keyboardInputMgr.addToggle('KeyD', () => {
+        this.stats.togglePanel();
+      });
       keyboardInputMgr.addToggle('KeyE', () => {
         this.gameServerController.roundEnd();
       });
       keyboardInputMgr.addToggle('KeyF', () => {
         console.log(this.flags.dump());
       });
-      keyboardInputMgr.addToggle('KeyD', () => {
-        this.stats.togglePanel();
-      });
       keyboardInputMgr.addToggle('KeyH', () => {
         this.gameView.toggleHitboxDisplay();
+      });
+      keyboardInputMgr.addToggle('KeyS', () => {
+        this.gameView.toggleSceneryTransparency();
       });
       keyboardInputMgr.addToggle('KeyX', () => {
         if (this.pc) {
@@ -48107,6 +48115,48 @@ module.exports = RoundTimer;
 
 /***/ }),
 
+/***/ "./src/js/lib/model/scenery.js":
+/*!*************************************!*\
+  !*** ./src/js/lib/model/scenery.js ***!
+  \*************************************/
+/***/ ((module) => {
+
+class Scenery {
+  constructor(id, props = {}) {
+    this.id = id;
+    this.type = props.type || this.id;
+    this.position = { x: 0, y: 0 };
+    this.speed = { x: 0, y: 0 };
+    this.direction = 'e';
+
+    if (props.spawn) {
+      this.setPosition(props.spawn.x, props.spawn.y);
+    }
+    if (props.direction) {
+      this.setDirection(props.direction);
+    }
+  }
+
+  setPosition(x, y) {
+    this.position.x = x;
+    this.position.y = y;
+  }
+
+  setSpeed(x, y) {
+    this.speed.x = x;
+    this.speed.y = y;
+  }
+
+  setDirection(direction) {
+    this.direction = direction;
+  }
+}
+
+module.exports = Scenery;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/model/storyline-manager.js":
 /*!***********************************************!*\
   !*** ./src/js/lib/model/storyline-manager.js ***!
@@ -50009,6 +50059,7 @@ const TargetArrow = __webpack_require__(/*! ./target-arrow */ "./src/js/lib/view
 const TownView = __webpack_require__(/*! ./town-view */ "./src/js/lib/view-pixi/town-view.js");
 const GameViewCamera = __webpack_require__(/*! ./game-view-camera */ "./src/js/lib/view-pixi/game-view-camera.js");
 const DemoDrone = __webpack_require__(/*! ./demo-drone */ "./src/js/lib/view-pixi/demo-drone.js");
+const SceneryView = __webpack_require__(/*! ./scenery-view */ "./src/js/lib/view-pixi/scenery-view.js");
 
 class GameView {
   constructor(config, textures, pixiApp, width, height) {
@@ -50021,6 +50072,7 @@ class GameView {
     this.demoDrone = new DemoDrone();
     this.demoDrone.setPosition(this.townView.width / 2, this.townView.height / 2);
 
+    this.sceneryViews = {};
     this.npcViews = {};
     this.remotePcViews = {};
     this.pcView = null;
@@ -50040,6 +50092,26 @@ class GameView {
       && bounds.x <= this.pixiApp.renderer.width
       && bounds.y + bounds.height >= 0
       && bounds.y <= this.pixiApp.renderer.height;
+  }
+
+  addScenery(scenery) {
+    const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    this.townView.mainLayer.addChild(view.display);
+    this.sceneryViews[scenery.id] = view;
+  }
+
+  removeScenery(id) {
+    const view = this.sceneryViews[id];
+    if (view) {
+      delete this.sceneryViews[id];
+      view.destroy();
+    }
+  }
+
+  removeAllScenery() {
+    Object.keys(this.sceneryViews).forEach((id) => {
+      this.removeScenery(id);
+    });
   }
 
   addNpc(npc) {
@@ -50181,6 +50253,12 @@ class GameView {
 
   toggleHitboxDisplay() {
     this.showHitbox = !this.showHitbox;
+  }
+
+  toggleSceneryTransparency() {
+    Object.entries(this.sceneryViews).forEach(([, sceneryView]) => {
+      sceneryView.display.alpha = sceneryView.display.alpha === 1 ? 0.5 : 1;
+    });
   }
 
   handlePcAction() {
@@ -50643,6 +50721,44 @@ module.exports = PCView;
 
 /***/ }),
 
+/***/ "./src/js/lib/view-pixi/scenery-view.js":
+/*!**********************************************!*\
+  !*** ./src/js/lib/view-pixi/scenery-view.js ***!
+  \**********************************************/
+/***/ ((module) => {
+
+/* globals PIXI */
+
+class SceneryView {
+  constructor(config, textures, scenery, townView) {
+    this.config = config;
+    this.textures = textures;
+    this.scenery = scenery;
+    this.townView = townView;
+    this.display = this.createSprite();
+  }
+
+  createSprite() {
+    const sprite = new PIXI.Sprite(this.textures[this.scenery.type]);
+    sprite.anchor.set(0.5, 1);
+
+    sprite.position = this.scenery.position;
+    sprite.zIndex = sprite.position.y;
+
+    return sprite;
+  }
+
+  destroy() {
+    this.display.removeFromParent();
+    this.display.destroy();
+  }
+}
+
+module.exports = SceneryView;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/view-pixi/target-arrow.js":
 /*!**********************************************!*\
   !*** ./src/js/lib/view-pixi/target-arrow.js ***!
@@ -50815,7 +50931,7 @@ module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["name","spawn","dialogue"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"$ref":"#/definitions/text"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]}},"additionalProperties":false,"required":["expression","max"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
+module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"scenery":{"$ref":"#/definitions/scenery"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["name","spawn","dialogue"]},"scenery":{"type":"object","additionalProperties":{"$ref":"#/definitions/sceneryObject"}},"sceneryObject":{"type":"object","properties":{"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"}},"additionalProperties":false,"required":["spawn"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"$ref":"#/definitions/text"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]}},"additionalProperties":false,"required":["expression","max"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
 
 /***/ }),
 
@@ -51029,4 +51145,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.c0d8dd0dbb2b75694e95.js.map
+//# sourceMappingURL=default.1d22b7d5869e7658dfa2.js.map

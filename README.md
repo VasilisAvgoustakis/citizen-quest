@@ -71,6 +71,7 @@ configuration key is not set to `false`:
 - 'e': Ends the countdown and jumps to the game end.
 - 'f': Dumps flags to the javascript console.
 - 'h': Shows hitboxes.
+- 's': Makes scenery sprites semi-transparent.
 - 'x': Outputs the player's position to the javascript console.
 
 The following keyboard shortcuts are available in the map app:

@@ -40096,6 +40096,7 @@ const PlayerOverlayManager = __webpack_require__(/*! ../view-html/player-overlay
 const DialogueSequencer = __webpack_require__(/*! ../model/dialogues/dialogue-sequencer */ "./src/js/lib/model/dialogues/dialogue-sequencer.js");
 const RoundTimer = __webpack_require__(/*! ../model/round-timer */ "./src/js/lib/model/round-timer.js");
 const readEnding = __webpack_require__(/*! ../model/dialogues/ending-reader */ "./src/js/lib/model/dialogues/ending-reader.js");
+const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/scenery.js");
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -40184,8 +40185,12 @@ class PlayerApp {
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
       this.gameView.removeAllNpcs();
+      this.gameView.removeAllScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline) {
+        Object.entries(storyline.scenery).forEach(([id, props]) => {
+          this.gameView.addScenery(new Scenery(id, props));
+        });
         Object.entries(storyline.npcs).forEach(([id, props]) => {
           this.gameView.addNpc(new Character(id, props));
         });
@@ -40240,17 +40245,20 @@ class PlayerApp {
     const keyboardInputMgr = new KeyboardInputMgr();
     keyboardInputMgr.attachListeners();
     if (this.config.game.devModeShortcuts !== false) {
+      keyboardInputMgr.addToggle('KeyD', () => {
+        this.stats.togglePanel();
+      });
       keyboardInputMgr.addToggle('KeyE', () => {
         this.gameServerController.roundEnd();
       });
       keyboardInputMgr.addToggle('KeyF', () => {
         console.log(this.flags.dump());
       });
-      keyboardInputMgr.addToggle('KeyD', () => {
-        this.stats.togglePanel();
-      });
       keyboardInputMgr.addToggle('KeyH', () => {
         this.gameView.toggleHitboxDisplay();
+      });
+      keyboardInputMgr.addToggle('KeyS', () => {
+        this.gameView.toggleSceneryTransparency();
       });
       keyboardInputMgr.addToggle('KeyX', () => {
         if (this.pc) {
@@ -43470,6 +43478,48 @@ module.exports = RoundTimer;
 
 /***/ }),
 
+/***/ "./src/js/lib/model/scenery.js":
+/*!*************************************!*\
+  !*** ./src/js/lib/model/scenery.js ***!
+  \*************************************/
+/***/ ((module) => {
+
+class Scenery {
+  constructor(id, props = {}) {
+    this.id = id;
+    this.type = props.type || this.id;
+    this.position = { x: 0, y: 0 };
+    this.speed = { x: 0, y: 0 };
+    this.direction = 'e';
+
+    if (props.spawn) {
+      this.setPosition(props.spawn.x, props.spawn.y);
+    }
+    if (props.direction) {
+      this.setDirection(props.direction);
+    }
+  }
+
+  setPosition(x, y) {
+    this.position.x = x;
+    this.position.y = y;
+  }
+
+  setSpeed(x, y) {
+    this.speed.x = x;
+    this.speed.y = y;
+  }
+
+  setDirection(direction) {
+    this.direction = direction;
+  }
+}
+
+module.exports = Scenery;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/net/connection-state-view.js":
 /*!*************************************************!*\
   !*** ./src/js/lib/net/connection-state-view.js ***!
@@ -45722,6 +45772,7 @@ const TargetArrow = __webpack_require__(/*! ./target-arrow */ "./src/js/lib/view
 const TownView = __webpack_require__(/*! ./town-view */ "./src/js/lib/view-pixi/town-view.js");
 const GameViewCamera = __webpack_require__(/*! ./game-view-camera */ "./src/js/lib/view-pixi/game-view-camera.js");
 const DemoDrone = __webpack_require__(/*! ./demo-drone */ "./src/js/lib/view-pixi/demo-drone.js");
+const SceneryView = __webpack_require__(/*! ./scenery-view */ "./src/js/lib/view-pixi/scenery-view.js");
 
 class GameView {
   constructor(config, textures, pixiApp, width, height) {
@@ -45734,6 +45785,7 @@ class GameView {
     this.demoDrone = new DemoDrone();
     this.demoDrone.setPosition(this.townView.width / 2, this.townView.height / 2);
 
+    this.sceneryViews = {};
     this.npcViews = {};
     this.remotePcViews = {};
     this.pcView = null;
@@ -45753,6 +45805,26 @@ class GameView {
       && bounds.x <= this.pixiApp.renderer.width
       && bounds.y + bounds.height >= 0
       && bounds.y <= this.pixiApp.renderer.height;
+  }
+
+  addScenery(scenery) {
+    const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    this.townView.mainLayer.addChild(view.display);
+    this.sceneryViews[scenery.id] = view;
+  }
+
+  removeScenery(id) {
+    const view = this.sceneryViews[id];
+    if (view) {
+      delete this.sceneryViews[id];
+      view.destroy();
+    }
+  }
+
+  removeAllScenery() {
+    Object.keys(this.sceneryViews).forEach((id) => {
+      this.removeScenery(id);
+    });
   }
 
   addNpc(npc) {
@@ -45894,6 +45966,12 @@ class GameView {
 
   toggleHitboxDisplay() {
     this.showHitbox = !this.showHitbox;
+  }
+
+  toggleSceneryTransparency() {
+    Object.entries(this.sceneryViews).forEach(([, sceneryView]) => {
+      sceneryView.display.alpha = sceneryView.display.alpha === 1 ? 0.5 : 1;
+    });
   }
 
   handlePcAction() {
@@ -46356,6 +46434,44 @@ module.exports = PCView;
 
 /***/ }),
 
+/***/ "./src/js/lib/view-pixi/scenery-view.js":
+/*!**********************************************!*\
+  !*** ./src/js/lib/view-pixi/scenery-view.js ***!
+  \**********************************************/
+/***/ ((module) => {
+
+/* globals PIXI */
+
+class SceneryView {
+  constructor(config, textures, scenery, townView) {
+    this.config = config;
+    this.textures = textures;
+    this.scenery = scenery;
+    this.townView = townView;
+    this.display = this.createSprite();
+  }
+
+  createSprite() {
+    const sprite = new PIXI.Sprite(this.textures[this.scenery.type]);
+    sprite.anchor.set(0.5, 1);
+
+    sprite.position = this.scenery.position;
+    sprite.zIndex = sprite.position.y;
+
+    return sprite;
+  }
+
+  destroy() {
+    this.display.removeFromParent();
+    this.display.destroy();
+  }
+}
+
+module.exports = SceneryView;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/view-pixi/target-arrow.js":
 /*!**********************************************!*\
   !*** ./src/js/lib/view-pixi/target-arrow.js ***!
@@ -46788,4 +46904,4 @@ const Character = __webpack_require__(/*! ./lib/model/character */ "./src/js/lib
 
 /******/ })()
 ;
-//# sourceMappingURL=player.fa6d0004e842019913a3.js.map
+//# sourceMappingURL=player.41daa4ef51a31a7d5195.js.map

@@ -13,6 +13,7 @@ const KeyboardInputMgr = require('../input/keyboard-input-mgr');
 const MapMarker = require('../view-pixi/map-marker');
 const MultiTextScroller = require('../view-html/multi-text-scroller');
 const InclusionBar = require('../view-html/inclusion-bar');
+const Scenery = require('../model/scenery');
 
 class MapApp {
   constructor(config, textures) {
@@ -28,12 +29,16 @@ class MapApp {
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
       this.clearNpcs();
+      this.clearScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline === undefined) {
         throw new Error(`Error: Attempting to start invalid storyline ${storylineId}`);
       }
       this.textScroller.displayText(storyline.prompt);
       this.textScroller.start();
+      Object.entries(storyline.scenery).forEach(([id, props]) => {
+        this.addScenery(new Scenery(id, props));
+      });
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
@@ -50,6 +55,7 @@ class MapApp {
     this.pcs = {};
     this.pcViews = {};
     this.npcViews = {};
+    this.sceneryViews = {};
 
     // HTML elements
     this.$element = $('<div></div>')
@@ -182,6 +188,26 @@ class MapApp {
       this.townView.mainLayer.removeChild(npcView.display);
     });
     this.npcViews = [];
+  }
+
+  addScenery(scenery) {
+    const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    this.townView.mainLayer.addChild(view.display);
+    this.sceneryViews[scenery.id] = view;
+  }
+
+  removeScenery(id) {
+    if (this.sceneryViews[id]) {
+      this.townView.mainLayer.removeChild(this.sceneryViews[id].display);
+      delete this.sceneryViews[id];
+    }
+  }
+
+  clearScenery() {
+    Object.values(this.sceneryViews).forEach((sceneryView) => {
+      this.townView.mainLayer.removeChild(sceneryView.display);
+    });
+    this.sceneryViews = [];
   }
 
   addMarker(character, icon) {

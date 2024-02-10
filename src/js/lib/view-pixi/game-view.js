@@ -5,6 +5,7 @@ const TargetArrow = require('./target-arrow');
 const TownView = require('./town-view');
 const GameViewCamera = require('./game-view-camera');
 const DemoDrone = require('./demo-drone');
+const SceneryView = require('./scenery-view');
 
 class GameView {
   constructor(config, textures, pixiApp, width, height) {
@@ -17,6 +18,7 @@ class GameView {
     this.demoDrone = new DemoDrone();
     this.demoDrone.setPosition(this.townView.width / 2, this.townView.height / 2);
 
+    this.sceneryViews = {};
     this.npcViews = {};
     this.remotePcViews = {};
     this.pcView = null;
@@ -36,6 +38,26 @@ class GameView {
       && bounds.x <= this.pixiApp.renderer.width
       && bounds.y + bounds.height >= 0
       && bounds.y <= this.pixiApp.renderer.height;
+  }
+
+  addScenery(scenery) {
+    const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    this.townView.mainLayer.addChild(view.display);
+    this.sceneryViews[scenery.id] = view;
+  }
+
+  removeScenery(id) {
+    const view = this.sceneryViews[id];
+    if (view) {
+      delete this.sceneryViews[id];
+      view.destroy();
+    }
+  }
+
+  removeAllScenery() {
+    Object.keys(this.sceneryViews).forEach((id) => {
+      this.removeScenery(id);
+    });
   }
 
   addNpc(npc) {
@@ -177,6 +199,12 @@ class GameView {
 
   toggleHitboxDisplay() {
     this.showHitbox = !this.showHitbox;
+  }
+
+  toggleSceneryTransparency() {
+    Object.entries(this.sceneryViews).forEach(([, sceneryView]) => {
+      sceneryView.display.alpha = sceneryView.display.alpha === 1 ? 0.5 : 1;
+    });
   }
 
   handlePcAction() {

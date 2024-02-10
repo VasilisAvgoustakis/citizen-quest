@@ -16,6 +16,7 @@ const PlayerOverlayManager = require('../view-html/player-overlay-mgr');
 const DialogueSequencer = require('../model/dialogues/dialogue-sequencer');
 const RoundTimer = require('../model/round-timer');
 const readEnding = require('../model/dialogues/ending-reader');
+const Scenery = require('../model/scenery');
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -104,8 +105,12 @@ class PlayerApp {
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
       this.gameView.removeAllNpcs();
+      this.gameView.removeAllScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline) {
+        Object.entries(storyline.scenery).forEach(([id, props]) => {
+          this.gameView.addScenery(new Scenery(id, props));
+        });
         Object.entries(storyline.npcs).forEach(([id, props]) => {
           this.gameView.addNpc(new Character(id, props));
         });
@@ -160,17 +165,20 @@ class PlayerApp {
     const keyboardInputMgr = new KeyboardInputMgr();
     keyboardInputMgr.attachListeners();
     if (this.config.game.devModeShortcuts !== false) {
+      keyboardInputMgr.addToggle('KeyD', () => {
+        this.stats.togglePanel();
+      });
       keyboardInputMgr.addToggle('KeyE', () => {
         this.gameServerController.roundEnd();
       });
       keyboardInputMgr.addToggle('KeyF', () => {
         console.log(this.flags.dump());
       });
-      keyboardInputMgr.addToggle('KeyD', () => {
-        this.stats.togglePanel();
-      });
       keyboardInputMgr.addToggle('KeyH', () => {
         this.gameView.toggleHitboxDisplay();
+      });
+      keyboardInputMgr.addToggle('KeyS', () => {
+        this.gameView.toggleSceneryTransparency();
       });
       keyboardInputMgr.addToggle('KeyX', () => {
         if (this.pc) {

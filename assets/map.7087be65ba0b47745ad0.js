@@ -39658,6 +39658,7 @@ const KeyboardInputMgr = __webpack_require__(/*! ../input/keyboard-input-mgr */ 
 const MapMarker = __webpack_require__(/*! ../view-pixi/map-marker */ "./src/js/lib/view-pixi/map-marker.js");
 const MultiTextScroller = __webpack_require__(/*! ../view-html/multi-text-scroller */ "./src/js/lib/view-html/multi-text-scroller.js");
 const InclusionBar = __webpack_require__(/*! ../view-html/inclusion-bar */ "./src/js/lib/view-html/inclusion-bar.js");
+const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/scenery.js");
 
 class MapApp {
   constructor(config, textures) {
@@ -39673,12 +39674,16 @@ class MapApp {
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
       this.clearNpcs();
+      this.clearScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline === undefined) {
         throw new Error(`Error: Attempting to start invalid storyline ${storylineId}`);
       }
       this.textScroller.displayText(storyline.prompt);
       this.textScroller.start();
+      Object.entries(storyline.scenery).forEach(([id, props]) => {
+        this.addScenery(new Scenery(id, props));
+      });
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
@@ -39695,6 +39700,7 @@ class MapApp {
     this.pcs = {};
     this.pcViews = {};
     this.npcViews = {};
+    this.sceneryViews = {};
 
     // HTML elements
     this.$element = $('<div></div>')
@@ -39827,6 +39833,26 @@ class MapApp {
       this.townView.mainLayer.removeChild(npcView.display);
     });
     this.npcViews = [];
+  }
+
+  addScenery(scenery) {
+    const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    this.townView.mainLayer.addChild(view.display);
+    this.sceneryViews[scenery.id] = view;
+  }
+
+  removeScenery(id) {
+    if (this.sceneryViews[id]) {
+      this.townView.mainLayer.removeChild(this.sceneryViews[id].display);
+      delete this.sceneryViews[id];
+    }
+  }
+
+  clearScenery() {
+    Object.values(this.sceneryViews).forEach((sceneryView) => {
+      this.townView.mainLayer.removeChild(sceneryView.display);
+    });
+    this.sceneryViews = [];
   }
 
   addMarker(character, icon) {
@@ -41546,6 +41572,48 @@ module.exports = QuestTracker;
 
 /***/ }),
 
+/***/ "./src/js/lib/model/scenery.js":
+/*!*************************************!*\
+  !*** ./src/js/lib/model/scenery.js ***!
+  \*************************************/
+/***/ ((module) => {
+
+class Scenery {
+  constructor(id, props = {}) {
+    this.id = id;
+    this.type = props.type || this.id;
+    this.position = { x: 0, y: 0 };
+    this.speed = { x: 0, y: 0 };
+    this.direction = 'e';
+
+    if (props.spawn) {
+      this.setPosition(props.spawn.x, props.spawn.y);
+    }
+    if (props.direction) {
+      this.setDirection(props.direction);
+    }
+  }
+
+  setPosition(x, y) {
+    this.position.x = x;
+    this.position.y = y;
+  }
+
+  setSpeed(x, y) {
+    this.speed.x = x;
+    this.speed.y = y;
+  }
+
+  setDirection(direction) {
+    this.direction = direction;
+  }
+}
+
+module.exports = Scenery;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/net/connection-state-view.js":
 /*!*************************************************!*\
   !*** ./src/js/lib/net/connection-state-view.js ***!
@@ -43251,4 +43319,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.1719fc87b51465c1fee6.js.map
+//# sourceMappingURL=map.7087be65ba0b47745ad0.js.map

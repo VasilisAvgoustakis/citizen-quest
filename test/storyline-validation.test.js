@@ -62,6 +62,16 @@ describe('Storyline validation', () => {
       const storyline = loadFixture('schema/bad-quest-requirement.yml');
       expect(() => validateStoryline(storyline)).to.throw('must be a quest ID or an array of quest IDs');
     });
+
+    it('should validate the "scenery" field', () => {
+      const storyline = loadFixture('schema/bad-scenery.yml');
+      expect(() => validateStoryline(storyline)).to.throw('must be object');
+    });
+
+    it('should validate that scenery items have required properties', () => {
+      const storyline = loadFixture('schema/bad-scenery-item.yml');
+      expect(() => validateStoryline(storyline)).to.throw('must have required property \'spawn\'');
+    });
   });
 
   describe('references', () => {

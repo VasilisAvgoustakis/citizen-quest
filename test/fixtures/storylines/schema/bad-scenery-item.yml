@@ -1,0 +1,11 @@
+decision: "..."
+prompt: "..."
+npcs: {}
+scenery: {
+  bad: {
+    name: 'bad-scenery-item',
+  }
+}
+quests: {}
+ending:
+  dialogue: []
