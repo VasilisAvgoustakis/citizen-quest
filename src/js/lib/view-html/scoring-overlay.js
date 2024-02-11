@@ -16,6 +16,7 @@ class ScoringOverlay {
       $('<div></div>')
         .addClass('achievement')
         .addClass(`achievement-${type}`)
+        .css('background-image', `url(static/icons/stats-${type}.svg)`)
         .appendTo(this.$element);
     }, 2000);
     this.uiQueue.add(() => {

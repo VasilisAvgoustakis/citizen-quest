@@ -682,18 +682,6 @@ h1, h2, h3, h4, h5, h6 {
   background-position: center;
   animation: score 1.5s ease-out forwards;
 }
-.scoring-overlay .achievement-empathy {
-  background-image: url(b2f567707c1eb0a572ab.svg);
-}
-.scoring-overlay .achievement-empowerment {
-  background-image: url(17b6461e0604f391592e.svg);
-}
-.scoring-overlay .achievement-equity {
-  background-image: url(85c60ef00bb8ca5c2361.svg);
-}
-.scoring-overlay .achievement-information {
-  background-image: url(9bf9c726c7525ba3f141.svg);
-}
 .scoring-overlay .inclusion {
   width: 80%;
   height: 40%;
@@ -1039,4 +1027,4 @@ html.with-fatal-error body {
   margin-bottom: 1.2em;
 }
 
-/*# sourceMappingURL=map.bfb3d511cd7b5b3667c8.css.map*/
+/*# sourceMappingURL=map.7ba96212d0ed9dda2398.css.map*/
