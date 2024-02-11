@@ -45329,7 +45329,6 @@ class TitleOverlay {
 
     this.$title = $('<h1></h1>')
       .addClass('logo')
-      .text('Citizen Quest')
       .appendTo(this.$element);
 
     this.$pressStart = $('<div></div>')
@@ -45344,6 +45343,10 @@ class TitleOverlay {
       .addClass('text')
       .appendTo(this.$pressStartFrame);
 
+    this.titleI18n = new I18nTextAdapter((newText) => {
+      this.$title.text(newText);
+    }, this.lang, this.config.i18n.ui.title);
+
     this.promptI18n = new I18nTextAdapter((newText) => {
       this.$pressStartText.text(newText);
     }, this.lang, this.config.i18n.ui.pressStart);
@@ -45351,6 +45354,7 @@ class TitleOverlay {
 
   setLang(lang) {
     this.lang = lang;
+    this.titleI18n.setLang(lang);
     this.promptI18n.setLang(lang);
   }
 
@@ -46906,4 +46910,4 @@ const Character = __webpack_require__(/*! ./lib/model/character */ "./src/js/lib
 
 /******/ })()
 ;
-//# sourceMappingURL=player.1d5d0ec837f3a34431c4.js.map
+//# sourceMappingURL=player.66582f3cc98ef7a093d6.js.map
