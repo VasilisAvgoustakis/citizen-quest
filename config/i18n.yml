@@ -1,5 +1,8 @@
 i18n:
   ui:
+    title:
+      en: 'Citizen Quest'
+      de: 'Citizen Quest'
     pressStart:
       en: "Press to start"
       de: "Start mit Knopfdruck"
