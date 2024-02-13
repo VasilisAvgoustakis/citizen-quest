@@ -108,7 +108,7 @@ class PlayerApp {
       this.gameView.removeAllScenery();
       const storyline = this.config?.storylines?.[storylineId];
       if (storyline) {
-        Object.entries(storyline.scenery).forEach(([id, props]) => {
+        Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
           this.gameView.addScenery(new Scenery(id, props));
         });
         Object.entries(storyline.npcs).forEach(([id, props]) => {

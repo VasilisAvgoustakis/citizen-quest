@@ -36,7 +36,7 @@ class MapApp {
       }
       this.textScroller.displayText(storyline.prompt);
       this.textScroller.start();
-      Object.entries(storyline.scenery).forEach(([id, props]) => {
+      Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
         this.addScenery(new Scenery(id, props));
       });
       Object.entries(storyline.npcs).forEach(([id, props]) => {
