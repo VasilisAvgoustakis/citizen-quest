@@ -164,12 +164,15 @@ class PlayerApp {
   createInputMgr() {
     const keyboardInputMgr = new KeyboardInputMgr();
     keyboardInputMgr.attachListeners();
+    if (this.config.game.devModeShortcuts !== false
+      || this.config.game.userModeShortcuts !== false) {
+      keyboardInputMgr.addToggle('KeyE', () => {
+        this.gameServerController.roundEnd();
+      });
+    }
     if (this.config.game.devModeShortcuts !== false) {
       keyboardInputMgr.addToggle('KeyD', () => {
         this.stats.togglePanel();
-      });
-      keyboardInputMgr.addToggle('KeyE', () => {
-        this.gameServerController.roundEnd();
       });
       keyboardInputMgr.addToggle('KeyF', () => {
         console.log(this.flags.dump());

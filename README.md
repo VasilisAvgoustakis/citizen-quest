@@ -64,11 +64,15 @@ a friendly format.
 
 ## Debugging tools
 
-The following keyboard shortcuts are available in the player app if the `game.devModeShortcuts` 
+The following keyboard shortcuts are available in the player app if the `game.userModeShortcuts`
 configuration key is not set to `false`:
 
-- 'd': Toggle stats panel. Each press of 'd' toggles to a different panel.
 - 'e': Ends the countdown and jumps to the game end.
+
+All the previous ones, plus the following keyboard shortcuts are available in the player app if the 
+`game.devModeShortcuts` configuration key is not set to `false`:
+
+- 'd': Toggle stats panel. Each press of 'd' toggles to a different panel.
 - 'f': Dumps flags to the javascript console.
 - 'h': Shows hitboxes.
 - 's': Makes scenery sprites semi-transparent.

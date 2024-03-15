@@ -9,3 +9,4 @@ game:
   playerAppHeight: 768
   playerAppFontRatio: 0.0175
   devModeShortcuts: true
+  userModeShortcuts: true
