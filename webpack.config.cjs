@@ -10,6 +10,7 @@ module.exports = {
     default: './src/js/main.js',
     player: './src/js/player.js',
     map: './src/js/map.js',
+    charEdit: './src/js/char-edit.js',
   },
   output: {
     filename: '[name].[contenthash].js',
@@ -82,6 +83,17 @@ module.exports = {
       title: `Map | ${appConfig.title}`,
       meta: {
         title: `Map | ${appConfig.title}`,
+        description: appConfig.description,
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, 'src/html/char-edit.html'),
+      filename: path.resolve(__dirname, 'char-edit.html'),
+      chunks: ['charEdit'],
+      minify: true,
+      title: `Char Editor | ${appConfig.title}`,
+      meta: {
+        title: `Char Editor | ${appConfig.title}`,
         description: appConfig.description,
       }
     }),

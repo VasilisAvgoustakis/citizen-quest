@@ -224,6 +224,14 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.85em;
 }
 
+.char-edit-app {
+  padding-top: 2em;
+}
+.char-edit-app .pixi-wrapper canvas {
+  display: block;
+  margin: auto;
+}
+
 @keyframes popIn {
   0% {
     transform: scale(0.5);
@@ -1027,4 +1035,4 @@ html.with-fatal-error body {
   margin-bottom: 1.2em;
 }
 
-/*# sourceMappingURL=default.7ba96212d0ed9dda2398.css.map*/
+/*# sourceMappingURL=player.03016d931d3705ac647a.css.map*/
