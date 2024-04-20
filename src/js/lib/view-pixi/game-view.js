@@ -175,11 +175,8 @@ class GameView {
 
   cameraFollowPc() {
     if (this.pcView) {
-      this.camera.setTarget(
-        this.pcView.display,
-        this.pcView.display.width / 2,
-        -this.pcView.display.height * 0.8
-      );
+      this.camera.setTarget(this.pcView.display);
+      this.cameraUsePreset('walking', true);
       this.demoDrone.active = false;
     }
   }
@@ -187,6 +184,21 @@ class GameView {
   cameraFollowDrone() {
     this.camera.setTarget(this.demoDrone);
     this.demoDrone.active = true;
+  }
+
+  cameraUsePreset(presetName, instant = false) {
+    const preset = this.config?.game?.cameraPresets?.[presetName] || {};
+    const offsetX = preset?.offset?.x || 0;
+    const offsetY = preset?.offset?.y || -0.8;
+    const zoom = preset?.zoom || 1;
+
+    if (instant) {
+      this.camera.setRelativeOffset(offsetX, offsetY);
+      this.camera.setZoom(zoom);
+    } else {
+      this.camera.relativeOffsetTo(offsetX, offsetY);
+      this.camera.zoomTo(zoom);
+    }
   }
 
   resetDroneTargets() {

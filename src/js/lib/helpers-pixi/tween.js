@@ -54,6 +54,8 @@ class PixiTween {
   }
 }
 
+PixiTween.Easing = TWEEN.Easing;
+
 PixiTween.popOut = (displayObject, onComplete = null) => new PixiTween({
   from: Math.max(displayObject.scale.x, 0),
   tween: TWEEN.Easing.Elastic.Out,

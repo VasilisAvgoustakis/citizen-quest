@@ -296,6 +296,7 @@ class PlayerApp {
 
   playDialogue(dialogue, npc = null) {
     this.gameView.hideDistractions();
+    this.gameView.cameraUsePreset('dialogue');
     this.inputRouter.routeToDialogueOverlay(
       this.playerOverlayMgr.dialogueOverlay,
       this.dialogueSequencer
@@ -304,6 +305,7 @@ class PlayerApp {
     this.dialogueSequencer.play(dialogue, this.getDialogueContext(), { top: title });
     this.dialogueSequencer.events.once('end', () => {
       this.inputRouter.routeToPcMovement(this);
+      this.gameView.cameraUsePreset('walking');
       this.gameView.showDistractions();
     });
   }

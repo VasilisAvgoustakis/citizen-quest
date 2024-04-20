@@ -9,6 +9,8 @@ class DemoDrone {
     this.active = false;
     this.x = 0;
     this.y = 0;
+    this.width = 0;
+    this.height = 0;
     this.speed = 0;
     this.wait = 0;
     this.targets = [];

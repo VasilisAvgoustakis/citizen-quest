@@ -44848,6 +44848,7 @@ class PlayerApp {
 
   playDialogue(dialogue, npc = null) {
     this.gameView.hideDistractions();
+    this.gameView.cameraUsePreset('dialogue');
     this.inputRouter.routeToDialogueOverlay(
       this.playerOverlayMgr.dialogueOverlay,
       this.dialogueSequencer
@@ -44856,6 +44857,7 @@ class PlayerApp {
     this.dialogueSequencer.play(dialogue, this.getDialogueContext(), { top: title });
     this.dialogueSequencer.events.once('end', () => {
       this.inputRouter.routeToPcMovement(this);
+      this.gameView.cameraUsePreset('walking');
       this.gameView.showDistractions();
     });
   }
@@ -45078,6 +45080,8 @@ class PixiTween {
     this.tween.update(this.elapsed);
   }
 }
+
+PixiTween.Easing = TWEEN.Easing;
 
 PixiTween.popOut = (displayObject, onComplete = null) => new PixiTween({
   from: Math.max(displayObject.scale.x, 0),
@@ -49917,6 +49921,8 @@ class DemoDrone {
     this.active = false;
     this.x = 0;
     this.y = 0;
+    this.width = 0;
+    this.height = 0;
     this.speed = 0;
     this.wait = 0;
     this.targets = [];
@@ -49983,9 +49989,11 @@ module.exports = DemoDrone;
 /*!**************************************************!*\
   !*** ./src/js/lib/view-pixi/game-view-camera.js ***!
   \**************************************************/
-/***/ ((module) => {
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /* globals PIXI */
+
+const PixiTween = __webpack_require__(/*! ../helpers-pixi/tween */ "./src/js/lib/helpers-pixi/tween.js");
 
 /**
  * A camera offers a viewport that crops, pans and zooms across a child display object.
@@ -50008,6 +50016,8 @@ class GameViewCamera {
     this.display.addChild(this.child);
     this.target = null;
     this.offset = new PIXI.Point(0, 0);
+    this.zoom = 1;
+    window.camera = this;
   }
 
   /**
@@ -50016,9 +50026,57 @@ class GameViewCamera {
    * @param {PIXI.DisplayObject} target
    *  An object within the child that the camera should follow.
    */
-  setTarget(target, offsetX = 0, offsetY = 0) {
+  setTarget(target, relOffsetX = 0, relOffsetY = 0, zoom = 1) {
     this.target = target;
-    this.offset = new PIXI.Point(offsetX, offsetY);
+    this.setRelativeOffset(relOffsetX, relOffsetY);
+    this.setZoom(zoom);
+  }
+
+  setRelativeOffset(xFactor, yFactor) {
+    if (this.target.width && this.target.height) {
+      this.offset = new PIXI.Point(this.target.width * xFactor, this.target.height * yFactor);
+    } else {
+      this.offset = new PIXI.Point(0, 0);
+    }
+  }
+
+  relativeOffsetTo(xFactor, yFactor, duration = 500) {
+    if (this.offsetTween) {
+      this.offsetTween.destroy();
+    }
+
+    this.offsetTween = new PixiTween({
+      from: { x: this.offset.x, y: this.offset.y },
+      to: { x: this.target.width * xFactor, y: this.target.height * yFactor },
+      duration,
+      easing: PixiTween.Easing.Sinusoidal.InOut,
+      onUpdate: (o) => {
+        this.offset = new PIXI.Point(o.value.x, o.value.y);
+      },
+    });
+  }
+
+  setZoom(zoom) {
+    this.display.scale.set(zoom);
+  }
+
+  zoomTo(zoom, duration = 500) {
+    if (this.zoomTween) {
+      this.zoomTween.destroy();
+    }
+    this.zoomTween = new PixiTween({
+      from: this.getZoom(),
+      to: zoom,
+      duration,
+      easing: PixiTween.Easing.Sinusoidal.InOut,
+      onUpdate: (o) => {
+        this.setZoom(o.value);
+      },
+    });
+  }
+
+  getZoom() {
+    return this.display.scale.x;
   }
 
   /**
@@ -50238,11 +50296,8 @@ class GameView {
 
   cameraFollowPc() {
     if (this.pcView) {
-      this.camera.setTarget(
-        this.pcView.display,
-        this.pcView.display.width / 2,
-        -this.pcView.display.height * 0.8
-      );
+      this.camera.setTarget(this.pcView.display);
+      this.cameraUsePreset('walking', true);
       this.demoDrone.active = false;
     }
   }
@@ -50250,6 +50305,21 @@ class GameView {
   cameraFollowDrone() {
     this.camera.setTarget(this.demoDrone);
     this.demoDrone.active = true;
+  }
+
+  cameraUsePreset(presetName, instant = false) {
+    const preset = this.config?.game?.cameraPresets?.[presetName] || {};
+    const offsetX = preset?.offset?.x || 0;
+    const offsetY = preset?.offset?.y || -0.8;
+    const zoom = preset?.zoom || 1;
+
+    if (instant) {
+      this.camera.setRelativeOffset(offsetX, offsetY);
+      this.camera.setZoom(zoom);
+    } else {
+      this.camera.relativeOffsetTo(offsetX, offsetY);
+      this.camera.zoomTo(zoom);
+    }
   }
 
   resetDroneTargets() {
@@ -51154,4 +51224,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.3fcc13f456f89cb9a904.js.map
+//# sourceMappingURL=default.9a92ee48b8d0b30f14fd.js.map

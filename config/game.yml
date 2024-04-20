@@ -10,3 +10,14 @@ game:
   playerAppFontRatio: 0.0175
   devModeShortcuts: true
   userModeShortcuts: true
+  cameraPresets:
+#    walking:
+#      offset:
+#        x: 0
+#        y: -1.35
+#      zoom: 0.75
+    talking:
+      offset:
+        x: 0
+        y: -0.8
+      zoom: 1
