@@ -1,0 +1,13 @@
+{
+  "id": "cycle-test",
+  "items": [
+    {
+      "type": "cycle",
+      "items": [
+        {
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}

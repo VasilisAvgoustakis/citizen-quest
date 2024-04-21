@@ -27,6 +27,8 @@ A dialogue is composed of nodes. Nodes can have different types:
 
 - **statement**: A statement is a node that displays a text and can have responses.
 - **random**: A random node is a node that randomly picks one of its items.
+- **cycle**: A cycle node is a node that picks the next of its items, in order and starting with 
+    the first, when becomes active.
 - **sequence**: A sequence node is a node that goes through its items in order.
 - **first**: A first node is a node that continues to its first valid item.
 
@@ -36,7 +38,7 @@ there's no transition, the dialogue ends.
 All nodes have these properties:
 
 - **id**: (string) The node's id. If it's not set, it's generated automatically.
-- **type**: (string, default: 'statement') The node's type. Can be 'statement', 'random' or
+- **type**: (string, default: 'statement') The node's type. Can be 'statement', 'random', 'cycle', or
   'sequence'.
 
 ### Statement nodes
@@ -125,6 +127,28 @@ Random nodes have these properties:
 - `items` (array, required): An array of node objects.
 
 When a random node becomes active, it randomly picks one of its child `items` and transitions to it.
+
+### Cycle nodes
+
+Example:
+
+```json
+{
+  "id": "node_id",
+  "type": "cycle",
+  "items": [
+    
+  ]
+}
+```
+
+Cycle nodes have these properties:
+
+- `items` (array, required): An array of node objects.
+
+When a cycle node becomes active, it picks the first elegible one of its child `items` and 
+transitions to it. Child items become elegible in order starting with the first, and once all of 
+them have been picked, the cycle starts again.
 
 ### Sequence nodes
 

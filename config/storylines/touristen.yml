@@ -69,7 +69,7 @@ npcs:
       de: "Tourist"
     spawn: { x: 2901, y: 2050 }
     dialogue:
-      - type: 'random'
+      - type: 'cycle'
         items:
           - text:
               en: 'I like the idea. There’s not much to do in this city.'
@@ -145,7 +145,7 @@ npcs:
       de: "Optimistische Bürgerin"
     spawn: { x: 311, y: 3130 }
     dialogue:
-      - type: 'random'
+      - type: 'cycle'
         items:
           - text:
               en: 'Tourism will help small local businesses.'

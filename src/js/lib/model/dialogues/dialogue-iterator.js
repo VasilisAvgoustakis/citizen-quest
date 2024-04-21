@@ -8,7 +8,7 @@ class DialogueIterator {
    * Creates a new iterator for the given dialogue.
    *
    * @param {Dialogue} dialogue
-   * @param {DialogueIteratorContextInterface} context
+   * @param {DialogueIteratorContext} context
    */
   constructor(dialogue, context) {
     this.dialogue = dialogue;
@@ -107,6 +107,9 @@ class DialogueIterator {
         break;
       case 'random':
         transitioned = this.nextOnRandom();
+        break;
+      case 'cycle':
+        transitioned = this.nextOnCycle();
         break;
       default:
         throw new Error(`Unknown node type: ${this.activeNode.type} (${this.activeNode.id}:${this.dialogue.root.id})`);
@@ -239,6 +242,23 @@ class DialogueIterator {
     if (matchingItems.length > 0) {
       const index = this.context.random(matchingItems.length);
       this.activeNode = matchingItems[index];
+      return true;
+    }
+    return false;
+  }
+
+  nextOnCycle() {
+    const lastCycleId = this.context.getLastCycleId(this.activeNode.id);
+    // Order the items starting with the one right after the last cycle index
+    // and then wrapping around to the beginning of the list.
+    const { items } = this.activeNode;
+    const lastCycleIndex = items.findIndex((item) => item.id === lastCycleId);
+    const orderedItems = items.slice(lastCycleIndex + 1).concat(items.slice(0, lastCycleIndex + 1));
+    // Now find the first enabled item.
+    const matchingItems = this.getEnabledItems(orderedItems);
+    if (matchingItems.length > 0) {
+      this.context.setLastCycleId(this.activeNode.id, matchingItems[0].id);
+      [this.activeNode] = matchingItems;
       return true;
     }
     return false;

@@ -1,0 +1,24 @@
+{
+  "id": "cycle",
+  "items": [
+    {
+      "type": "cycle",
+      "items": [
+        {
+          "text": "Hello"
+        },
+        {
+          "cond" : "doneOnce",
+          "text": "again"
+        },
+        {
+          "text": "World"
+        },
+        {
+          "text": "!",
+          "set": ["doneOnce"]
+        }
+      ]
+    }
+  ]
+}

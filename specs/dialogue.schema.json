@@ -36,6 +36,9 @@
           "$ref": "#/definitions/random"
         },
         {
+          "$ref": "#/definitions/cycle"
+        },
+        {
           "$ref": "#/definitions/first"
         },
         {
@@ -134,6 +137,27 @@
       "properties": {
         "type": {
           "const": "random"
+        },
+        "items": {
+          "$ref": "#/definitions/nodeList"
+        },
+        "cond": {
+          "$ref": "#/definitions/condition"
+        },
+        "set": {
+          "$ref": "#/definitions/flag_assignments"
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ]
+    },
+    "cycle": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cycle"
         },
         "items": {
           "$ref": "#/definitions/nodeList"

@@ -65,7 +65,7 @@ npcs:
       de: "Roboter"
     spawn: { x: 5748, y: 2340 }
     dialogue:
-      - type: random
+      - type: cycle
         items:
           - text:
               en: "If you can't defend yourself against a bear, maybe you shouldn't be going into the woods in the first place."

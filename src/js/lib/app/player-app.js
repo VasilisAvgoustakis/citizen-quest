@@ -17,6 +17,7 @@ const DialogueSequencer = require('../model/dialogues/dialogue-sequencer');
 const RoundTimer = require('../model/round-timer');
 const readEnding = require('../model/dialogues/ending-reader');
 const Scenery = require('../model/scenery');
+const DialogueIteratorContext = require('../model/dialogues/dialogue-iterator-context');
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -28,6 +29,7 @@ class PlayerApp {
     // Game logic
     this.storylineId = null;
     this.flags = new FlagStore();
+    this.dialogueIteratorContext = new DialogueIteratorContext(this.flags);
 
     this.questTracker = new QuestTracker(config, this.flags);
     this.roundTimer = new RoundTimer(config.game.duration);
@@ -222,6 +224,7 @@ class PlayerApp {
   resetGameState() {
     this.setState(PlayerAppStates.IDLE);
     this.questTracker.setActiveStoryline(this.storylineId);
+    this.dialogueIteratorContext.clearState();
     this.seenFlags = {};
   }
 
@@ -288,10 +291,7 @@ class PlayerApp {
   }
 
   getDialogueContext() {
-    return {
-      flags: this.flags,
-      random: (max) => Math.floor(Math.random() * max),
-    };
+    return this.dialogueIteratorContext;
   }
 
   playDialogue(dialogue, npc = null) {
