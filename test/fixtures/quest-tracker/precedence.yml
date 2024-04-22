@@ -1,0 +1,41 @@
+decision: "Is chocolate the best flavor?"
+prompt: "Find out if everyone agrees that chocolate is the best flavor."
+npcs:
+  mayor:
+    name: Mayor
+    spawn: { x: 0, y: 0 }
+    dialogue:
+      - text: "Does everyone like chocolate?"
+  boy:
+    name: Little boy
+    spawn: { x: 100, y: 100 }
+    dialogue:
+      - text: "I like chocolate."
+  chocolateLover:
+    name: Chocolate lover
+    spawn: { x: 200, y: 200 }
+    dialogue:
+      - text: "I love chocolate."
+quests:
+  milkChocolate:
+    npc: mayor
+    mood: chocolate
+    available:
+      dialogue:
+        - text: "Help me find out if everyone likes milk chocolate."
+          set: ['quest.milkChocolate.active']
+    dialogues:
+      chocolateLover:
+        - text: "I haven't tried milk chocolate."
+    stages:
+      - cond: "hasTriedMilkChocolate"
+        prompt: "Find out if everyone likes milk chocolate."
+        dialogues:
+          mayor:
+            - text: "Does everyone like milk chocolate?"
+          chocolateLover:
+            - text: "I love milk chocolate."
+      - prompt: "Make sure everyone tried milk chocolate."
+        dialogues:
+          mayor:
+            - text: "Make sure everyone tried milk chocolate, please."
