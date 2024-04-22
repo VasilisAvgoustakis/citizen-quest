@@ -1,8 +1,8 @@
 const { expect } = require('chai');
 const Dialogue = require('../src/js/lib/model/dialogues/dialogue');
 const DialogueIterator = require('../src/js/lib/model/dialogues/dialogue-iterator');
-const FlagStore = require('../src/js/lib/model/flag-store');
-const { getText } = require('../src/js/lib/helpers/i18n');
+const TestDialogueIteratorContext = require('./lib/test-dialogue-iterator-context');
+const getDialogueTrace = require('./lib/get-dialogue-trace');
 const helloWorldDialogue = require('./fixtures/dialogues/core/hello-world.dialogue.json');
 const helloThenWorldDialogue = require('./fixtures/dialogues/core/then.dialogue.json');
 const sequenceDialogue = require('./fixtures/dialogues/sequences/sequence.dialogue.json');
@@ -36,59 +36,6 @@ const thenTextResponseI18nDialogue = require('./fixtures/dialogues/i18n/thentext
 const invalidTypeDialogue = require('./fixtures/dialogues/invalid/invalid-type.dialogue.json');
 const invalidThenDialogue = require('./fixtures/dialogues/invalid/invalid-then.dialogue.json');
 const invalidCondDialogue = require('./fixtures/dialogues/invalid/invalid-cond.dialogue.json');
-const DialogueIteratorContext = require('../src/js/lib/model/dialogues/dialogue-iterator-context');
-
-const MAX_TRANSITIONS = 10;
-function getTrace(iterator, input = [], lang = null) {
-  const trace = [];
-  let transitions = 0;
-  const log = [];
-  while (!iterator.isEnd()) {
-    const activeNode = iterator.getActiveNode();
-    log.push(activeNode.id);
-    const { text } = activeNode;
-    if (text !== undefined) {
-      trace.push(getText(text, lang));
-    }
-    if (activeNode.responses && activeNode.responses.length > 0) {
-      const responseIndex = input.shift();
-      if (activeNode.responses[responseIndex] === undefined) {
-        throw new Error(`Invalid input ${responseIndex} (${activeNode.id}:${iterator.dialogue.root.id})`);
-      }
-      const response = activeNode.responses[responseIndex];
-      trace.push(`>> ${getText(response.text, lang)}`);
-      if (response.thenText) {
-        trace.push(getText(response.thenText, lang));
-      }
-      iterator.nextWithResponse(activeNode.responses[responseIndex].id);
-    } else {
-      iterator.next();
-    }
-    transitions += 1;
-    if (transitions > MAX_TRANSITIONS) {
-      throw new Error(`Exceeded max transitions (${MAX_TRANSITIONS}): ${log.join(' -> ')}`);
-    }
-  }
-  return trace;
-}
-
-class TestDialogueIteratorContext extends DialogueIteratorContext {
-  constructor() {
-    super(new FlagStore());
-    this.randomValues = [];
-  }
-
-  setRandom(random) {
-    this.randomValues = random;
-  }
-
-  random() {
-    if (this.randomValues.length === 0) {
-      throw new Error('Not enough random values set');
-    }
-    return this.randomValues.shift();
-  }
-}
 
 describe('DialogueIterator', () => {
   describe('core functionality', () => {
@@ -97,21 +44,21 @@ describe('DialogueIterator', () => {
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
       expect(iterator.getActiveNode().id).to.equal('hello-world');
       expect(iterator.getActiveNode().type).to.equal('root');
-      expect(getTrace(iterator)).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello world!']);
     });
 
     it('should support resetting', () => {
       const dialogue = Dialogue.fromJson(helloWorldDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello world!']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello world!']);
     });
 
     it('should handle statements connected by a then', () => {
       const dialogue = Dialogue.fromJson(helloThenWorldDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
     });
   });
 
@@ -119,37 +66,37 @@ describe('DialogueIterator', () => {
     it('should handle a sequence', () => {
       const dialogue = Dialogue.fromJson(sequenceDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
     });
 
     it('should handle nested sequences', () => {
       const dialogue = Dialogue.fromJson(nestedSequencesDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
     });
 
     it('should handle a sequence that skips midway', () => {
       const dialogue = Dialogue.fromJson(sequenceWithSkipDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!', 'End']);
     });
 
     it('should handle jumping into a sequence', () => {
       const dialogue = Dialogue.fromJson(jumpIntoSequenceDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
     });
 
     it('should handle jumping around with sequences', () => {
       const dialogue = Dialogue.fromJson(jumpAroundWithSequencesDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['One', 'Two', 'Three', 'Four', 'Five']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['One', 'Two', 'Three', 'Four', 'Five']);
     });
 
     it('should handle jumping into the middle of a sequence', () => {
       const dialogue = Dialogue.fromJson(jumpToMidSequenceDialogue);
       const iterator = new DialogueIterator(dialogue, new TestDialogueIteratorContext());
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
     });
   });
 
@@ -159,7 +106,7 @@ describe('DialogueIterator', () => {
       const context = new TestDialogueIteratorContext();
       context.setRandom([0, 1]);
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'World', '!']);
     });
   });
 
@@ -168,24 +115,24 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(cycleDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['World']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['World']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['!']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
     });
 
     it('should handle a cycle statement with a single node', () => {
       const dialogue = Dialogue.fromJson(monoCycleDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
     });
   });
 
@@ -194,7 +141,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(conditionDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Neither']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Neither']);
     });
 
     it('should enter nodes when flags are set', () => {
@@ -202,7 +149,7 @@ describe('DialogueIterator', () => {
       const context = new TestDialogueIteratorContext();
       context.flags.touch('even');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Two']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Two']);
     });
 
     it('should use conditions to filter items from sequences', () => {
@@ -211,7 +158,7 @@ describe('DialogueIterator', () => {
       context.flags.touch('useSequence');
       context.flags.touch('possible');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
     });
 
     it('should use conditions to filter items from random nodes', () => {
@@ -221,31 +168,31 @@ describe('DialogueIterator', () => {
       context.flags.touch('useRandom');
       context.flags.touch('possible');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['right']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['right']);
     });
 
     it('should use conditions to filter items from cycle nodes', () => {
       const dialogue = Dialogue.fromJson(cycleConditionDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['World']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['World']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['!']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['Hello']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['again']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['again']);
       iterator.reset();
-      expect(getTrace(iterator)).to.deep.equal(['World']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['World']);
     });
 
     it('should allow a dialogue to set flags', () => {
       const dialogue = Dialogue.fromJson(setFlagsDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B']);
       expect(context.flags.exists('aFlag')).to.be.true;
       expect(context.flags.exists('bFlag')).to.be.true;
       expect(context.flags.exists('cFlag')).to.be.false;
@@ -255,7 +202,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(setFlagsIntDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B']);
       expect(context.flags.value('aFlag')).to.equal(1);
       expect(context.flags.value('bFlag')).to.equal(2);
       expect(context.flags.value('cFlag')).to.equal(3);
@@ -265,7 +212,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(setFlagsIncDecDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
       expect(context.flags.value('aFlag')).to.equal(1);
       expect(context.flags.value('bFlag')).to.equal(2);
       expect(context.flags.value('cFlag')).to.equal(3);
@@ -275,7 +222,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(setFlagsTouchDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B']);
       expect(context.flags.value('aFlag')).to.equal(1);
       expect(context.flags.value('bFlag')).to.equal(2);
     });
@@ -287,7 +234,7 @@ describe('DialogueIterator', () => {
       context.flags.touch('flagB');
       context.flags.touch('flagC');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
     });
 
     it('should support conditions with comparisons', () => {
@@ -297,7 +244,7 @@ describe('DialogueIterator', () => {
       context.flags.set('flagB', 3);
       context.flags.set('flagC', 4);
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
     });
 
     it('should support conditions with the count function', () => {
@@ -307,7 +254,7 @@ describe('DialogueIterator', () => {
       context.flags.set('prefixA_flag2', 3);
       context.flags.set('prefixB_flag1', 4);
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['A', 'B', 'C']);
     });
   });
 
@@ -316,7 +263,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(firstDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello world!']);
     });
 
     it('should support first type nodes with conditions', () => {
@@ -324,7 +271,7 @@ describe('DialogueIterator', () => {
       const context = new TestDialogueIteratorContext();
       context.flags.touch('flagA');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello world!']);
     });
 
     it('should support first type nodes between sequences', () => {
@@ -332,7 +279,7 @@ describe('DialogueIterator', () => {
       const context = new TestDialogueIteratorContext();
       context.flags.touch('flagA');
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator)).to.deep.equal(['Hello', 'world', '!']);
+      expect(getDialogueTrace(iterator)).to.deep.equal(['Hello', 'world', '!']);
     });
   });
 
@@ -341,7 +288,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(responseDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [1, 2])).to.deep.equal(
+      expect(getDialogueTrace(iterator, [1, 2])).to.deep.equal(
         ['Hello?', '>> Hello world!', 'How are you?', '>> I\'m good, thanks!']
       );
     });
@@ -365,7 +312,7 @@ describe('DialogueIterator', () => {
       expect(context.flags.exists('programmer')).to.be.false;
       expect(context.flags.exists('polite')).to.be.false;
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [1])).to.deep.equal(
+      expect(getDialogueTrace(iterator, [1])).to.deep.equal(
         ['Hello?', '>> Hello world!']
       );
       expect(context.flags.exists('programmer')).to.be.true;
@@ -376,7 +323,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(responseJumpsDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [1])).to.deep.equal(
+      expect(getDialogueTrace(iterator, [1])).to.deep.equal(
         ['Hello?', '>> Hello world!', 'I see you\'re a programmer.']
       );
     });
@@ -385,7 +332,7 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(thentextResponseDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [2])).to.deep.equal(
+      expect(getDialogueTrace(iterator, [2])).to.deep.equal(
         ['Hello?', '>> Hello world!', 'Are you a programmer?']
       );
     });
@@ -419,20 +366,20 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(helloWorldI18nDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [], 'en')).to.deep.equal(['Hello world!']);
+      expect(getDialogueTrace(iterator, [], 'en')).to.deep.equal(['Hello world!']);
       iterator.reset();
-      expect(getTrace(iterator, [], 'de')).to.deep.equal(['Hallo Welt!']);
+      expect(getDialogueTrace(iterator, [], 'de')).to.deep.equal(['Hallo Welt!']);
     });
 
     it('should support responses in multiple languages', () => {
       const dialogue = Dialogue.fromJson(thenTextResponseI18nDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(getTrace(iterator, [2], 'en')).to.deep.equal(
+      expect(getDialogueTrace(iterator, [2], 'en')).to.deep.equal(
         ['Hello?', '>> Hello world!', 'Are you a programmer?']
       );
       iterator.reset();
-      expect(getTrace(iterator, [2], 'de')).to.deep.equal(
+      expect(getDialogueTrace(iterator, [2], 'de')).to.deep.equal(
         ['Hallo?', '>> Hallo Welt!', 'Bist du ein Programmierer?']
       );
     });
@@ -447,14 +394,14 @@ describe('DialogueIterator', () => {
       const dialogue = Dialogue.fromJson(invalidThenDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(() => getTrace(iterator)).to.throw('Can\'t find node id: non-existant');
+      expect(() => getDialogueTrace(iterator)).to.throw('Can\'t find node id: non-existant');
     });
 
     it('should throw an exception if a node has a condition with invalid syntax', () => {
       const dialogue = Dialogue.fromJson(invalidCondDialogue);
       const context = new TestDialogueIteratorContext();
       const iterator = new DialogueIterator(dialogue, context);
-      expect(() => getTrace(iterator)).to.throw('Error parsing condition');
+      expect(() => getDialogueTrace(iterator)).to.throw('Error parsing condition');
     });
   });
 });
