@@ -46,6 +46,11 @@ quests:
             en: "We should ask the baker."
             es: "Deberíamos preguntarle al panadero."
           set: ['quest.mayorIdea.active']
+    dialogues:
+      citizen1:
+        - text:
+            en: "I like cake."
+            es: "Me gusta la torta."
     stages:
       - prompt:
           en: "Go talk to the baker"

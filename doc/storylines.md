@@ -168,6 +168,7 @@ Quests are specified through these properties:
   head when they have a quest available. This is a string that is used to look up the icon in the
   game's icon set.
 - **available.dialogue**: (dialogue) The dialogue that the NPC says when the quest is available.
+- **dialogues** (object<dialogue>) Dialogue overrides for when the quest is active.
 - **stages**: (array<stage>) The stages of the quest.
 - **required**: (string | array<string>, optional) One or more quests that must be completed for 
   this quest to be available.
@@ -182,7 +183,7 @@ Quests are made up of one or more stages. You can think of them as sub-quests.
 Stages are specified through these properties:
 
 - **prompt**: (text) The prompt that is shown to the player when the stage is active.
-- **dialogues**: (dialogue) The dialogues that NPCs says when the stage is active.
+- **dialogues**: (Object<dialogue>) Dialogue overrides for when the stage is active.
 - **cond**: (string, optional) A condition that must be true for the stage to be active.
 - **counter**: (counter, optional) If the stage involves collecting several things of a kind,
   this is the counter that tracks the progress of the collection.

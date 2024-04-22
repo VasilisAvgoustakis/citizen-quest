@@ -107,6 +107,9 @@
         "required": {
           "$ref": "#/definitions/questRequirements"
         },
+        "dialogues": {
+          "$ref": "#/definitions/indexedDialogues"
+        },
         "available": {
           "type": "object",
           "properties": {
