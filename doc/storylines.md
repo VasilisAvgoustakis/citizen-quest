@@ -146,15 +146,14 @@ NPCs are specified through these properties:
 
 ### Dialogue overriding
 
-Whenever a player character talks to an NPC, a dialogue executed. This dialogue is built by 
-concatenating, in order, the list of nodes in several different places:
+Whenever a player character talks to an NPC, a dialogue executed. This dialogue is the first found 
+from the following sources, in order of precedence:
 
-- The dialogue from the current stage
-- The dialogue from the current quest
+- Dialogue for the npc in the current stage
+- Dialogue for the npc in the current quest
 - The dialogue from the `available` section of all available quests that the npc hands out.
-- The dialogue from the current storyline
-
-The more specific dialogues take precedence over the more general ones.
+- Dialogue for the npc in the current storyline
+- Dialogue from the npc declaration
 
 ### Quests
 

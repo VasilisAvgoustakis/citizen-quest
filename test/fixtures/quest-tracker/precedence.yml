@@ -16,6 +16,9 @@ npcs:
     spawn: { x: 200, y: 200 }
     dialogue:
       - text: "I love chocolate."
+dialogues:
+  chocolateLover:
+    - text: "I love every kind of chocolate."
 quests:
   milkChocolate:
     npc: mayor

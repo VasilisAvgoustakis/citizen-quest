@@ -33,11 +33,18 @@ describe('QuestTracker dialogue precedence', () => {
     questTracker.setActiveStoryline('default');
   });
 
-  it('should default to the storyline dialogue', () => {
+  it('should default to the npc dialogue', () => {
     const dialogue = questTracker.getNpcDialogue('boy');
     const context = new TestDialogueIteratorContext();
     const iterator = new DialogueIterator(dialogue, context);
     expect(getDialogueTrace(iterator)).to.deep.equal(['I like chocolate.']);
+  });
+
+  it('should use the storyline dialogue if there is one', () => {
+    const dialogue = questTracker.getNpcDialogue('chocolateLover');
+    const context = new TestDialogueIteratorContext();
+    const iterator = new DialogueIterator(dialogue, context);
+    expect(getDialogueTrace(iterator)).to.deep.equal(['I love every kind of chocolate.']);
   });
 
   it('should use the "available" dialogue if there is one', () => {

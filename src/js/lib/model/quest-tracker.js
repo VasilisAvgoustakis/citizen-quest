@@ -229,17 +229,18 @@ class QuestTracker {
     const activeQuestDialogue = currentQuest?.dialogues?.[npcId];
     const availableQuestDialogues = this.getAvailableQuests()
       .filter((id) => this.activeStoryline.quests[id]?.npc === npcId)
-      .map((id) => this.activeStoryline.quests[id]?.available?.dialogue || []).flat();
+      .map((id) => this.activeStoryline.quests[id]?.available?.dialogue)
+      .shift();
     const npcDialogue = this.activeStoryline?.npcs?.[npcId]?.dialogue;
     const storylineDialogue = this.activeStoryline?.dialogues?.[npcId];
 
-    const dialogueItems = [
-      ...(activeStageDialogue || []),
-      ...(activeQuestDialogue || []),
-      ...(availableQuestDialogues || []),
-      ...(npcDialogue || []),
-      ...(storylineDialogue || []),
-    ];
+    const dialogueItems = (
+      activeStageDialogue
+      || activeQuestDialogue
+      || availableQuestDialogues
+      || storylineDialogue
+      || npcDialogue
+      || []);
 
     return safeBuildDialogueFromItems(npcId, dialogueItems);
   }
