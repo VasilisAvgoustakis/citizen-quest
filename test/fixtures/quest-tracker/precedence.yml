@@ -16,9 +16,25 @@ npcs:
     spawn: { x: 200, y: 200 }
     dialogue:
       - text: "I love chocolate."
+  tweedleDum:
+    name: Tweedle Dum
+    spawn: { x: 300, y: 300 }
+    actAs: _chocolateHater
+  tweedleDee:
+    name: Tweedle Dee
+    spawn: { x: 400, y: 400 }
+    actAs: _chocolateHater
+  tweedleDorf:
+    name: Tweedle Dorf
+    spawn: { x: 500, y: 500 }
+    actAs: _chocolateHater
 dialogues:
   chocolateLover:
     - text: "I love every kind of chocolate."
+  tweedleDorf:
+    - text: "No chocolate for me!"
+  _chocolateHater:
+    - text: "I hate chocolate."
 quests:
   milkChocolate:
     npc: mayor
@@ -30,6 +46,8 @@ quests:
     dialogues:
       chocolateLover:
         - text: "I haven't tried milk chocolate."
+      _chocolateHater:
+        - text: "I specially hate milk chocolate."
     stages:
       - cond: "hasTriedMilkChocolate"
         prompt: "Find out if everyone likes milk chocolate."
@@ -38,7 +56,13 @@ quests:
             - text: "Does everyone like milk chocolate?"
           chocolateLover:
             - text: "I love milk chocolate."
+          tweedleDee:
+            - text: "I actually haven't tried milk chocolate."
+          _chocolateHater:
+            - text: "I don't need to try milk chocolate to know I hate it."
       - prompt: "Make sure everyone tried milk chocolate."
         dialogues:
           mayor:
             - text: "Make sure everyone tried milk chocolate, please."
+          tweedleDum:
+            - text: "I refuse to try milk chocolate."

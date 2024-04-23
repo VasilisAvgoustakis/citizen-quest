@@ -65,10 +65,23 @@
         },
         "dialogue": {
           "$ref": "#/definitions/dialogue"
+        },
+        "actAs": {
+          "$ref": "#/definitions/roles"
         }
       },
       "additionalProperties": false,
-      "required": ["name", "spawn", "dialogue"]
+      "anyOf": [
+        {
+          "required": ["name", "spawn", "dialogue"]
+        },
+        {
+          "required": ["name", "spawn", "actAs"]
+        }
+      ],
+      "errorMessage": {
+        "anyOf": "must have name, spawn, and at least one of dialogue or actAs properties."
+      }
     },
     "scenery": {
       "type": "object",
@@ -204,6 +217,20 @@
     "flagId": {
       "$ref": "dialogue.schema.json#/definitions/flag_id"
     },
+    "roles": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/roleID"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/roleID"
+          }
+        }
+      ],
+      "errorMessage": "must be a role ID or an array of role IDs."
+    },
     "text": {
       "oneOf": [
         {
@@ -218,6 +245,7 @@
       ],
       "errorMessage": "must be a string or an object with language code keys and string values."
     },
+
     "condition": {
       "type": "string",
       "minLength": 1,
@@ -228,11 +256,17 @@
       "minLength": 1,
       "maxLength": 1000
     },
+    "roleID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^_[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
     "objectID": {
       "type": "string",
       "minLength": 1,
       "maxLength": 100,
-      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
     },
     "point": {
       "type": "object",

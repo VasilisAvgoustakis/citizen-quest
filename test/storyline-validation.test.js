@@ -48,6 +48,11 @@ describe('Storyline validation', () => {
       expect(() => validateStoryline(storyline)).to.throw('/npcs/mayor/dialogue/0');
     });
 
+    it('should validate that npcs have either dialogue or actAs properties', () => {
+      const storyline = loadFixture('schema/bad-npc-no-dialogue.yml');
+      expect(() => validateStoryline(storyline)).to.throw('/npcs/mayor: must have name, spawn, and at least one of dialogue or actAs properties.');
+    });
+
     it('should validate quests', () => {
       const storyline = loadFixture('schema/bad-quest.yml');
       expect(() => validateStoryline(storyline)).to.throw('must have required property \'npc\'');

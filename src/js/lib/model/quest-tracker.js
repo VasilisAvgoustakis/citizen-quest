@@ -188,6 +188,10 @@ class QuestTracker {
     );
   }
 
+  getNpcRoles(npcId) {
+    return [this.activeStoryline?.npcs?.[npcId]?.actAs || []].flat();
+  }
+
   /**
    * True if the quest passed is done.
    *
@@ -224,21 +228,32 @@ class QuestTracker {
   getNpcDialogue(npcId) {
     const currentQuest = this.activeStoryline?.quests?.[this.activeQuestId];
     const currentStage = currentQuest?.stages[this.activeStage];
+    const npcRoles = this.getNpcRoles(npcId);
+    const findRoleInDialogues = (roles, dialogues) => {
+      const firstMatchingRole = roles.find((r) => dialogues?.[r]);
+      return dialogues?.[firstMatchingRole];
+    };
 
     const activeStageDialogue = currentStage?.dialogues?.[npcId];
+    const activeStageRoleDialogue = findRoleInDialogues(npcRoles, currentStage?.dialogues);
     const activeQuestDialogue = currentQuest?.dialogues?.[npcId];
+    const activeQuestRoleDialogue = findRoleInDialogues(npcRoles, currentQuest?.dialogues);
     const availableQuestDialogues = this.getAvailableQuests()
       .filter((id) => this.activeStoryline.quests[id]?.npc === npcId)
       .map((id) => this.activeStoryline.quests[id]?.available?.dialogue)
       .shift();
-    const npcDialogue = this.activeStoryline?.npcs?.[npcId]?.dialogue;
     const storylineDialogue = this.activeStoryline?.dialogues?.[npcId];
+    const storylineRoleDialogue = findRoleInDialogues(npcRoles, this.activeStoryline?.dialogues);
+    const npcDialogue = this.activeStoryline?.npcs?.[npcId]?.dialogue;
 
     const dialogueItems = (
       activeStageDialogue
+      || activeStageRoleDialogue
       || activeQuestDialogue
+      || activeQuestRoleDialogue
       || availableQuestDialogues
       || storylineDialogue
+      || storylineRoleDialogue
       || npcDialogue
       || []);
 

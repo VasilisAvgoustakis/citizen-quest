@@ -142,7 +142,20 @@ NPCs are specified through these properties:
   character speaks.
 - **type**: (string) The texture to use to render the NPC. If not set, the ID is used as type.
 - **spawn**: (point) The position where the NPC will be spawned in the city map screen.
-- **dialogue**: (dialogue) The dialogues that the NPC will say when the player talks to them. 
+- **dialogue**: (dialogue) The dialogues that the NPC will say when the player talks to them.
+- **actAs**: (string | [string]) Ordered list of roles that the NPC will act as (see below).
+
+### Roles
+
+Whenever there's a list of dialogues (i.e. at the stage, quest or storyline level), the dialogues
+can be specified for a role instead of an NPC. This is useful when the same dialogue should be
+used for multiple NPCs.
+
+Roles are identified by a string that begins with an underscore. e.g. `_citizen`.
+
+An npc can specify one or more roles that it acts as. When a dialogue is being looked up, the
+dialogue for the npc is used first, and if that is not found, the dialogue for one of the npc's
+roles is used. The roles are tried in the order that they are specified in the `actAs` property.
 
 ### Dialogue overriding
 
@@ -150,9 +163,12 @@ Whenever a player character talks to an NPC, a dialogue executed. This dialogue 
 from the following sources, in order of precedence:
 
 - Dialogue for the npc in the current stage
+- Dialogue for one of the npcs roles in the current stage
 - Dialogue for the npc in the current quest
+- Dialogue for one of the npcs roles in the current quest
 - The dialogue from the `available` section of all available quests that the npc hands out.
 - Dialogue for the npc in the current storyline
+- Dialogue for one of the npcs roles in the current storyline
 - Dialogue from the npc declaration
 
 ### Quests
