@@ -183,6 +183,7 @@ class GameView {
 
   cameraFollowDrone() {
     this.camera.setTarget(this.demoDrone);
+    this.cameraUsePreset('drone', true);
     this.demoDrone.active = true;
   }
 

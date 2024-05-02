@@ -11,13 +11,18 @@ game:
   devModeShortcuts: true
   userModeShortcuts: true
   cameraPresets:
-#    walking:
-#      offset:
-#        x: 0
-#        y: -1.35
-#      zoom: 0.75
+    walking:
+      offset:
+        x: 0
+        y: -1.35
+      zoom: 0.70
     talking:
       offset:
         x: 0
         y: -0.8
       zoom: 1
+    drone:
+      offset:
+        x: 0
+        y: 0
+      zoom: 0.5
