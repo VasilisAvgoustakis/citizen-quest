@@ -73,9 +73,9 @@
       "anchor": { "x": 36, "y": 0 }
     },
     "citizenCat": {
-      "frame": {"x": 144, "y": 156, "w": 72, "h": 156},
-      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
-      "sourceSize": {"w": 72, "h": 156},
+      "frame": {"x": 144, "y": 181, "w": 72, "h": 131},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 131},
+      "sourceSize": {"w": 72, "h": 131},
       "anchor": {"x": 36, "y": 0}
     },
     "citizenHipster": {
@@ -170,6 +170,60 @@
     },
     "citizenAqua": {
       "frame": {"x": 72, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "privateSecurityMan": {
+      "frame": {"x": 144, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "ceo": {
+      "frame": {"x": 216, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "hologramCeo": {
+      "frame": {"x": 288, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "activist": {
+      "frame": {"x": 360, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "engineer": {
+      "frame": {"x": 432, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "videoBlogger": {
+      "frame": {"x": 504, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "citizenRibbon": {
+      "frame": {"x": 576, "y": 468, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "citizenTennis": {
+      "frame": {"x": 0, "y": 624, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 36, "y": 0}
+    },
+    "citizenDough": {
+      "frame": {"x": 72, "y": 624, "w": 72, "h": 156},
       "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
       "sourceSize": {"w": 72, "h": 156},
       "anchor": {"x": 36, "y": 0}
