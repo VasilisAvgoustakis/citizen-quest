@@ -91,6 +91,12 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: -0.1em;
 }
 
+.emoji.emoji-clock {
+  background-image: url(6cdd9bf25d8ae7f80655.svg);
+  margin-bottom: -0.25em;
+  font-size: 1.4em;
+}
+
 .emoji.emoji-speech_bubble {
   background-image: url(ce32a2183dd8743ad38f.svg);
   margin-bottom: -0.2em;
@@ -1035,4 +1041,4 @@ html.with-fatal-error body {
   margin-bottom: 1.2em;
 }
 
-/*# sourceMappingURL=player.03016d931d3705ac647a.css.map*/
+/*# sourceMappingURL=charEdit.c6ee91bcfc1a8c50f82b.css.map*/

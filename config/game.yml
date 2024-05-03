@@ -10,6 +10,7 @@ game:
   playerAppFontRatio: 0.0175
   devModeShortcuts: true
   userModeShortcuts: true
+  canSwitchQuests: true
   cameraPresets:
     walking:
       offset:

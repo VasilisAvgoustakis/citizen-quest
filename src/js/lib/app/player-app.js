@@ -347,8 +347,14 @@ class PlayerApp {
 
   updateNpcMoods() {
     const npcsWithQuests = this.questTracker.getNpcsWithQuests();
+    const canSwitchQuests = this.config.game.canSwitchQuests !== undefined
+      ? this.config.game.canSwitchQuests : true;
+    console.log(`hasQuest: ${this.questTracker.hasActiveQuest()}, canSwitchQuests: ${canSwitchQuests}`);
+    const showMoods = this.npcMoodsVisible
+      && (!this.questTracker.hasActiveQuest() || canSwitchQuests)
+      && Object.keys(npcsWithQuests).length > 0;
     this.gameView.getAllNpcViews().forEach((npcView) => {
-      if (this.npcMoodsVisible && Object.keys(npcsWithQuests).includes(npcView.character.id)) {
+      if (showMoods && Object.keys(npcsWithQuests).includes(npcView.character.id)) {
         npcView.showMoodBalloon(npcsWithQuests[npcView.character.id]);
       } else {
         npcView.hideMoodBalloon();

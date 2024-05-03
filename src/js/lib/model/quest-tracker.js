@@ -119,6 +119,15 @@ class QuestTracker {
   }
 
   /**
+   * Returns true if there is an active quest.
+   *
+   * @return {boolean}
+   */
+  hasActiveQuest() {
+    return this.activeQuestId !== null;
+  }
+
+  /**
    * Get the active quest.
    *
    * @returns {*|null}
@@ -228,11 +237,14 @@ class QuestTracker {
   getNpcDialogue(npcId) {
     const currentQuest = this.activeStoryline?.quests?.[this.activeQuestId];
     const currentStage = currentQuest?.stages[this.activeStage];
+    const canSwitchQuests = this.config.game.canSwitchQuests !== undefined
+      ? this.config.game.canSwitchQuests : true;
     const npcRoles = this.getNpcRoles(npcId);
     const findRoleInDialogues = (roles, dialogues) => {
       const firstMatchingRole = roles.find((r) => dialogues?.[r]);
       return dialogues?.[firstMatchingRole];
     };
+    const canStartNewQuest = !this.hasActiveQuest() || canSwitchQuests;
 
     const activeStageDialogue = currentStage?.dialogues?.[npcId];
     const activeStageRoleDialogue = findRoleInDialogues(npcRoles, currentStage?.dialogues);
@@ -251,7 +263,7 @@ class QuestTracker {
       || activeStageRoleDialogue
       || activeQuestDialogue
       || activeQuestRoleDialogue
-      || availableQuestDialogues
+      || (canStartNewQuest && availableQuestDialogues)
       || storylineDialogue
       || storylineRoleDialogue
       || npcDialogue
@@ -384,8 +396,8 @@ class QuestTracker {
    * @private
    */
   onQuestDone(questId) {
-    this.events.emit('questDone', questId);
     this.setActiveQuest(null);
+    this.events.emit('questDone', questId);
   }
 
   /**
