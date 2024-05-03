@@ -39659,6 +39659,7 @@ const MapMarker = __webpack_require__(/*! ../view-pixi/map-marker */ "./src/js/l
 const MultiTextScroller = __webpack_require__(/*! ../view-html/multi-text-scroller */ "./src/js/lib/view-html/multi-text-scroller.js");
 const InclusionBar = __webpack_require__(/*! ../view-html/inclusion-bar */ "./src/js/lib/view-html/inclusion-bar.js");
 const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/scenery.js");
+const SceneryView = __webpack_require__(/*! ../view-pixi/scenery-view */ "./src/js/lib/view-pixi/scenery-view.js");
 
 class MapApp {
   constructor(config, textures) {
@@ -43019,6 +43020,44 @@ module.exports = PCView;
 
 /***/ }),
 
+/***/ "./src/js/lib/view-pixi/scenery-view.js":
+/*!**********************************************!*\
+  !*** ./src/js/lib/view-pixi/scenery-view.js ***!
+  \**********************************************/
+/***/ ((module) => {
+
+/* globals PIXI */
+
+class SceneryView {
+  constructor(config, textures, scenery, townView) {
+    this.config = config;
+    this.textures = textures;
+    this.scenery = scenery;
+    this.townView = townView;
+    this.display = this.createSprite();
+  }
+
+  createSprite() {
+    const sprite = new PIXI.Sprite(this.textures[this.scenery.type]);
+    sprite.anchor.set(0.5, 1);
+
+    sprite.position = this.scenery.position;
+    sprite.zIndex = sprite.position.y;
+
+    return sprite;
+  }
+
+  destroy() {
+    this.display.removeFromParent();
+    this.display.destroy();
+  }
+}
+
+module.exports = SceneryView;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/view-pixi/town-view.js":
 /*!*******************************************!*\
   !*** ./src/js/lib/view-pixi/town-view.js ***!
@@ -43350,4 +43389,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.65181b5eaed591053d9b.js.map
+//# sourceMappingURL=map.9b5ea06a0c0881303812.js.map

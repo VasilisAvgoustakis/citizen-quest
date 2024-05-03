@@ -14,6 +14,7 @@ const MapMarker = require('../view-pixi/map-marker');
 const MultiTextScroller = require('../view-html/multi-text-scroller');
 const InclusionBar = require('../view-html/inclusion-bar');
 const Scenery = require('../model/scenery');
+const SceneryView = require('../view-pixi/scenery-view');
 
 class MapApp {
   constructor(config, textures) {
