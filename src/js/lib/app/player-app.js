@@ -349,7 +349,6 @@ class PlayerApp {
     const npcsWithQuests = this.questTracker.getNpcsWithQuests();
     const canSwitchQuests = this.config.game.canSwitchQuests !== undefined
       ? this.config.game.canSwitchQuests : true;
-    console.log(`hasQuest: ${this.questTracker.hasActiveQuest()}, canSwitchQuests: ${canSwitchQuests}`);
     const showMoods = this.npcMoodsVisible
       && (!this.questTracker.hasActiveQuest() || canSwitchQuests)
       && Object.keys(npcsWithQuests).length > 0;
