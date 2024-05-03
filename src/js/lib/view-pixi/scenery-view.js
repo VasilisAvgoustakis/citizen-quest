@@ -1,5 +1,7 @@
 /* globals PIXI */
 
+const Fader = require('../helpers-pixi/fader');
+
 class SceneryView {
   constructor(config, textures, scenery, townView) {
     this.config = config;
@@ -7,6 +9,8 @@ class SceneryView {
     this.scenery = scenery;
     this.townView = townView;
     this.display = this.createSprite();
+    this.fader = new Fader(this.display);
+    this.visible = true;
   }
 
   createSprite() {
@@ -22,6 +26,20 @@ class SceneryView {
   destroy() {
     this.display.removeFromParent();
     this.display.destroy();
+  }
+
+  show() {
+    this.fader.fadeIn(1000);
+    this.visible = true;
+  }
+
+  hide() {
+    this.fader.fadeOut(1000);
+    this.visible = false;
+  }
+
+  isVisible() {
+    return this.visible;
   }
 }
 

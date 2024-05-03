@@ -40,6 +40,7 @@ class MapApp {
       Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
         this.addScenery(new Scenery(id, props));
       });
+      this.updateScenery();
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
@@ -48,9 +49,11 @@ class MapApp {
 
     this.questTracker.events.on('questActive', () => {
       this.updateQuestMarkers();
+      this.updateScenery();
     });
     this.questTracker.events.on('questDone', () => {
       this.updateQuestMarkers();
+      this.updateScenery();
     });
 
     this.pcs = {};
@@ -119,6 +122,8 @@ class MapApp {
           this.inclusionBar.add(type);
         }
       }
+
+      this.updateScenery();
     });
 
     // Game loop
@@ -209,6 +214,35 @@ class MapApp {
       this.townView.mainLayer.removeChild(sceneryView.display);
     });
     this.sceneryViews = [];
+  }
+
+  ensureSceneryVisible(id) {
+    const view = this.sceneryViews[id];
+    if (view && !view.isVisible()) {
+      view.show();
+    }
+  }
+
+  ensureSceneryHidden(id) {
+    const view = this.sceneryViews[id];
+    if (view && view.isVisible()) {
+      view.hide();
+    }
+  }
+
+  updateScenery() {
+    const storyline = this.config.storylines[this.storylineId];
+    Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
+      // If the scenery has a cond property, evaluate it
+      if (props.cond) {
+        const conditionMet = this.questTracker.isConditionMet(props.cond);
+        if (conditionMet) {
+          this.ensureSceneryVisible(id);
+        } else {
+          this.ensureSceneryHidden(id);
+        }
+      }
+    });
   }
 
   addMarker(character, icon) {

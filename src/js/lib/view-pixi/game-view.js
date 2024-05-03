@@ -60,6 +60,20 @@ class GameView {
     });
   }
 
+  ensureSceneryHidden(id) {
+    const view = this.sceneryViews[id];
+    if (view && view.isVisible()) {
+      view.hide();
+    }
+  }
+
+  ensureSceneryVisible(id) {
+    const view = this.sceneryViews[id];
+    if (view && !view.isVisible()) {
+      view.show();
+    }
+  }
+
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
     this.townView.mainLayer.addChild(view.display);

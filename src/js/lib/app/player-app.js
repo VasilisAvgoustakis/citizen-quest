@@ -73,6 +73,7 @@ class PlayerApp {
           this.playerOverlayMgr.scoringOverlay.showInclusion(type);
         }
       }
+      this.updateScenery();
     });
 
     const width = this.config?.game?.playerAppWidth ?? 1024;
@@ -113,6 +114,7 @@ class PlayerApp {
         Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
           this.gameView.addScenery(new Scenery(id, props));
         });
+        this.updateScenery();
         Object.entries(storyline.npcs).forEach(([id, props]) => {
           this.gameView.addNpc(new Character(id, props));
         });
@@ -123,9 +125,11 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('questActive', () => {
+      this.updateScenery();
       this.updateNpcMoods();
     });
     this.questTracker.events.on('questDone', () => {
+      this.updateScenery();
       this.updateNpcMoods();
       this.playerOverlayMgr.questOverlay.markQuestAsDone();
     });
@@ -369,6 +373,21 @@ class PlayerApp {
   showNpcMoods() {
     this.npcMoodsVisible = true;
     this.updateNpcMoods();
+  }
+
+  updateScenery() {
+    const storyline = this.config.storylines[this.storylineId];
+    Object.entries(storyline.scenery || {}).forEach(([id, props]) => {
+      // If the scenery has a cond property, evaluate it
+      if (props.cond) {
+        const conditionMet = this.questTracker.isConditionMet(props.cond);
+        if (conditionMet) {
+          this.gameView.ensureSceneryVisible(id);
+        } else {
+          this.gameView.ensureSceneryHidden(id);
+        }
+      }
+    });
   }
 
   getCurrentEnding() {

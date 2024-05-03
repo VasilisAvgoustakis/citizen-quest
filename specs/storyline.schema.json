@@ -68,6 +68,9 @@
         },
         "actAs": {
           "$ref": "#/definitions/roles"
+        },
+        "cond": {
+          "$ref": "#/definitions/condition"
         }
       },
       "additionalProperties": false,
@@ -97,6 +100,9 @@
         },
         "spawn": {
           "$ref": "#/definitions/point"
+        },
+        "cond": {
+          "$ref": "#/definitions/condition"
         }
       },
       "additionalProperties": false,

@@ -129,6 +129,7 @@ properties:
 - **spawn**: (point) The position where the object will be spawned in the city map screen.
 - **type**: (string) The type of object that will be spawned. This is used to look up the texture
   that will be used to render the object.
+- **cond**: (string, optional) A condition that must be true for the object to be visible.
 
 ### NPCs
 
@@ -144,6 +145,7 @@ NPCs are specified through these properties:
 - **spawn**: (point) The position where the NPC will be spawned in the city map screen.
 - **dialogue**: (dialogue) The dialogues that the NPC will say when the player talks to them.
 - **actAs**: (string | [string]) Ordered list of roles that the NPC will act as (see below).
+- **cond**: (string, optional) A condition that must be true for the NPC to be visible.
 
 ### Roles
 

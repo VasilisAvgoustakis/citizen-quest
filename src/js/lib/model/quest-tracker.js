@@ -413,6 +413,10 @@ class QuestTracker {
     this.events.emit('stageChanged', this.activeQuestId, stage, oldStage);
     this.updateCounter();
   }
+
+  isConditionMet(condition) {
+    return this.logicParser.evaluate(condition);
+  }
 }
 
 module.exports = QuestTracker;
