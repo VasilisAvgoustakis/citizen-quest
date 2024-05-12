@@ -5,6 +5,7 @@ class Scenery {
     this.position = { x: 0, y: 0 };
     this.speed = { x: 0, y: 0 };
     this.direction = 'e';
+    this.layer = props.layer || 'main';
 
     if (props.spawn) {
       this.setPosition(props.spawn.x, props.spawn.y);

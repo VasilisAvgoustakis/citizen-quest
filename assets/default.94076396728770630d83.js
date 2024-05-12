@@ -48269,6 +48269,7 @@ class Scenery {
     this.position = { x: 0, y: 0 };
     this.speed = { x: 0, y: 0 };
     this.direction = 'e';
+    this.layer = props.layer || 'main';
 
     if (props.spawn) {
       this.setPosition(props.spawn.x, props.spawn.y);
@@ -51459,4 +51460,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.b2291c5df423cf3ef550.js.map
+//# sourceMappingURL=default.94076396728770630d83.js.map
