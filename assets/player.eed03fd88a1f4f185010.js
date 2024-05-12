@@ -45991,7 +45991,7 @@ class GameView {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
@@ -46025,7 +46025,7 @@ class GameView {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.npcViews[npc.id] = view;
   }
 
@@ -46058,7 +46058,7 @@ class GameView {
 
   addRemotePcView(pc) {
     const view = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.remotePcViews[pc.id] = view;
   }
 
@@ -46072,8 +46072,8 @@ class GameView {
 
   addPc(pc) {
     this.pcView = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(this.pcView.display);
-    this.townView.bgLayer.addChild(this.pcView.hitboxDisplay);
+    this.townView.addView(this.pcView.display);
+    this.townView.addView(this.pcView.hitboxDisplay, 'pre-main');
     this.guideArrow = new GuideArrow(this.pcView);
   }
 
@@ -46200,7 +46200,7 @@ class GameView {
       this.pcView.animate(time);
     }
 
-    this.townView.mainLayer.sortChildren();
+    this.townView.sortViews();
     this.demoDrone.animate(time);
     this.camera.update();
     this.updateGuideArrow();
@@ -46801,9 +46801,13 @@ class TownView {
 
     this.display = new PIXI.Container();
     this.bgLayer = new PIXI.Container();
+    this.preMainLayer = new PIXI.Container();
     this.mainLayer = new PIXI.Container();
+    this.frontLayer = new PIXI.Container();
     this.display.addChild(this.bgLayer);
+    this.display.addChild(this.preMainLayer);
     this.display.addChild(this.mainLayer);
+    this.display.addChild(this.frontLayer);
 
     this.background = PIXI.Sprite.from(this.textures['town-bg']);
     this.background.width = this.width;
@@ -46823,6 +46827,29 @@ class TownView {
 
   isWalkable(x, y) {
     return this.collisionMap.isWalkable(x, y);
+  }
+
+  getLayerContainer(name) {
+    switch (name) {
+      case 'back':
+        return this.bgLayer;
+      case 'main':
+        return this.mainLayer;
+      case 'front':
+        return this.frontLayer;
+      case 'pre-main':
+        return this.preMainLayer;
+      default:
+        return this.mainLayer;
+    }
+  }
+
+  addView(view, layer = 'main') {
+    this.getLayerContainer(layer).addChild(view);
+  }
+
+  sortViews() {
+    this.mainLayer.sortChildren();
   }
 }
 
@@ -47131,4 +47158,4 @@ const Character = __webpack_require__(/*! ./lib/model/character */ "./src/js/lib
 
 /******/ })()
 ;
-//# sourceMappingURL=player.df033aa4947f213f682a.js.map
+//# sourceMappingURL=player.eed03fd88a1f4f185010.js.map

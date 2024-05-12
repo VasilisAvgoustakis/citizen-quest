@@ -42,7 +42,7 @@ class GameView {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
@@ -76,7 +76,7 @@ class GameView {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.npcViews[npc.id] = view;
   }
 
@@ -109,7 +109,7 @@ class GameView {
 
   addRemotePcView(pc) {
     const view = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.remotePcViews[pc.id] = view;
   }
 
@@ -123,8 +123,8 @@ class GameView {
 
   addPc(pc) {
     this.pcView = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(this.pcView.display);
-    this.townView.bgLayer.addChild(this.pcView.hitboxDisplay);
+    this.townView.addView(this.pcView.display);
+    this.townView.addView(this.pcView.hitboxDisplay, 'pre-main');
     this.guideArrow = new GuideArrow(this.pcView);
   }
 
@@ -251,7 +251,7 @@ class GameView {
       this.pcView.animate(time);
     }
 
-    this.townView.mainLayer.sortChildren();
+    this.townView.sortViews();
     this.demoDrone.animate(time);
     this.camera.update();
     this.updateGuideArrow();

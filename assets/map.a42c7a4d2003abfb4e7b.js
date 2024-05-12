@@ -43137,9 +43137,13 @@ class TownView {
 
     this.display = new PIXI.Container();
     this.bgLayer = new PIXI.Container();
+    this.preMainLayer = new PIXI.Container();
     this.mainLayer = new PIXI.Container();
+    this.frontLayer = new PIXI.Container();
     this.display.addChild(this.bgLayer);
+    this.display.addChild(this.preMainLayer);
     this.display.addChild(this.mainLayer);
+    this.display.addChild(this.frontLayer);
 
     this.background = PIXI.Sprite.from(this.textures['town-bg']);
     this.background.width = this.width;
@@ -43159,6 +43163,29 @@ class TownView {
 
   isWalkable(x, y) {
     return this.collisionMap.isWalkable(x, y);
+  }
+
+  getLayerContainer(name) {
+    switch (name) {
+      case 'back':
+        return this.bgLayer;
+      case 'main':
+        return this.mainLayer;
+      case 'front':
+        return this.frontLayer;
+      case 'pre-main':
+        return this.preMainLayer;
+      default:
+        return this.mainLayer;
+    }
+  }
+
+  addView(view, layer = 'main') {
+    this.getLayerContainer(layer).addChild(view);
+  }
+
+  sortViews() {
+    this.mainLayer.sortChildren();
   }
 }
 
@@ -43449,4 +43476,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.bb35afcaae932c61e4e4.js.map
+//# sourceMappingURL=map.a42c7a4d2003abfb4e7b.js.map

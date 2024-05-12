@@ -50278,7 +50278,7 @@ class GameView {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
@@ -50312,7 +50312,7 @@ class GameView {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.npcViews[npc.id] = view;
   }
 
@@ -50345,7 +50345,7 @@ class GameView {
 
   addRemotePcView(pc) {
     const view = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.addView(view.display);
     this.remotePcViews[pc.id] = view;
   }
 
@@ -50359,8 +50359,8 @@ class GameView {
 
   addPc(pc) {
     this.pcView = new PCView(this.config, this.textures, pc, this.townView);
-    this.townView.mainLayer.addChild(this.pcView.display);
-    this.townView.bgLayer.addChild(this.pcView.hitboxDisplay);
+    this.townView.addView(this.pcView.display);
+    this.townView.addView(this.pcView.hitboxDisplay, 'pre-main');
     this.guideArrow = new GuideArrow(this.pcView);
   }
 
@@ -50487,7 +50487,7 @@ class GameView {
       this.pcView.animate(time);
     }
 
-    this.townView.mainLayer.sortChildren();
+    this.townView.sortViews();
     this.demoDrone.animate(time);
     this.camera.update();
     this.updateGuideArrow();
@@ -51088,9 +51088,13 @@ class TownView {
 
     this.display = new PIXI.Container();
     this.bgLayer = new PIXI.Container();
+    this.preMainLayer = new PIXI.Container();
     this.mainLayer = new PIXI.Container();
+    this.frontLayer = new PIXI.Container();
     this.display.addChild(this.bgLayer);
+    this.display.addChild(this.preMainLayer);
     this.display.addChild(this.mainLayer);
+    this.display.addChild(this.frontLayer);
 
     this.background = PIXI.Sprite.from(this.textures['town-bg']);
     this.background.width = this.width;
@@ -51110,6 +51114,29 @@ class TownView {
 
   isWalkable(x, y) {
     return this.collisionMap.isWalkable(x, y);
+  }
+
+  getLayerContainer(name) {
+    switch (name) {
+      case 'back':
+        return this.bgLayer;
+      case 'main':
+        return this.mainLayer;
+      case 'front':
+        return this.frontLayer;
+      case 'pre-main':
+        return this.preMainLayer;
+      default:
+        return this.mainLayer;
+    }
+  }
+
+  addView(view, layer = 'main') {
+    this.getLayerContainer(layer).addChild(view);
+  }
+
+  sortViews() {
+    this.mainLayer.sortChildren();
   }
 }
 
@@ -51158,7 +51185,7 @@ module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"scenery":{"$ref":"#/definitions/scenery"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"},"actAs":{"$ref":"#/definitions/roles"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"anyOf":[{"required":["name","spawn","dialogue"]},{"required":["name","spawn","actAs"]}],"errorMessage":{"anyOf":"must have name, spawn, and at least one of dialogue or actAs properties."}},"scenery":{"type":"object","additionalProperties":{"$ref":"#/definitions/sceneryObject"}},"sceneryObject":{"type":"object","properties":{"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"required":["spawn"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"$ref":"#/definitions/text"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]}},"additionalProperties":false,"required":["expression","max"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"roles":{"oneOf":[{"$ref":"#/definitions/roleID"},{"type":"array","items":{"$ref":"#/definitions/roleID"}}],"errorMessage":"must be a role ID or an array of role IDs."},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"roleID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^_[a-zA-Z_][a-zA-Z0-9_]*$"},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
+module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"scenery":{"$ref":"#/definitions/scenery"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"},"actAs":{"$ref":"#/definitions/roles"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"anyOf":[{"required":["name","spawn","dialogue"]},{"required":["name","spawn","actAs"]}],"errorMessage":{"anyOf":"must have name, spawn, and at least one of dialogue or actAs properties."}},"scenery":{"type":"object","additionalProperties":{"$ref":"#/definitions/sceneryObject"}},"sceneryObject":{"type":"object","properties":{"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"layer":{"type":"string","enum":["back","main","front"]},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"required":["spawn"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"$ref":"#/definitions/text"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]}},"additionalProperties":false,"required":["expression","max"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"roles":{"oneOf":[{"$ref":"#/definitions/roleID"},{"type":"array","items":{"$ref":"#/definitions/roleID"}}],"errorMessage":"must be a role ID or an array of role IDs."},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"roleID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^_[a-zA-Z_][a-zA-Z0-9_]*$"},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
 
 /***/ }),
 
@@ -51372,4 +51399,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.b50b242a0e90506feb49.js.map
+//# sourceMappingURL=default.07a3f0cb055815c3c4e8.js.map

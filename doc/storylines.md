@@ -130,6 +130,9 @@ properties:
 - **type**: (string) The type of object that will be spawned. This is used to look up the texture
   that will be used to render the object.
 - **cond**: (string, optional) A condition that must be true for the object to be visible.
+- **layer**: (string, optional) The layer that the object will be rendered on. This is used to
+  determine the order in which objects are rendered. Can be 'back' (behind characters), 'main'
+  (at the same level as characters, the default) or 'front' (in front of all characters).
 
 ### NPCs
 

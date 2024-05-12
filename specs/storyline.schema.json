@@ -101,6 +101,10 @@
         "spawn": {
           "$ref": "#/definitions/point"
         },
+        "layer": {
+          "type": "string",
+          "enum": ["back", "main", "front"]
+        },
         "cond": {
           "$ref": "#/definitions/condition"
         }
