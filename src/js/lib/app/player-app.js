@@ -74,6 +74,7 @@ class PlayerApp {
         }
       }
       this.updateScenery();
+      this.updateNpcs();
     });
 
     const width = this.config?.game?.playerAppWidth ?? 1024;
@@ -118,6 +119,7 @@ class PlayerApp {
         Object.entries(storyline.npcs).forEach(([id, props]) => {
           this.gameView.addNpc(new Character(id, props));
         });
+        this.updateNpcs();
         this.updateNpcMoods();
         this.gameView.resetDroneTargets();
         this.playerOverlayMgr.decisionLabelI18n.setText(storyline.decision || '');
@@ -127,10 +129,12 @@ class PlayerApp {
 
     this.questTracker.events.on('questActive', () => {
       this.updateScenery();
+      this.updateNpcs();
       this.updateNpcMoods();
     });
     this.questTracker.events.on('questDone', () => {
       this.updateScenery();
+      this.updateNpcs();
       this.updateNpcMoods();
       this.playerOverlayMgr.questOverlay.markQuestAsDone();
     });
@@ -322,7 +326,9 @@ class PlayerApp {
     }
     this.gameView.handlePcAction();
     const hitbox = pcView.getActionHitbox();
-    const npcs = this.gameView.getNpcViewsInRect(hitbox).map((view) => view.character);
+    const npcs = this.gameView.getNpcViewsInRect(hitbox)
+      .filter((npcView) => npcView.isVisible())
+      .map((view) => view.character);
     let closestNpc = null;
     let closestDistance = null;
     npcs.forEach((npc) => {
@@ -386,6 +392,21 @@ class PlayerApp {
           this.gameView.ensureSceneryVisible(id);
         } else {
           this.gameView.ensureSceneryHidden(id);
+        }
+      }
+    });
+  }
+
+  updateNpcs() {
+    const storyline = this.config.storylines[this.storylineId];
+    Object.entries(storyline.npcs || {}).forEach(([id, props]) => {
+      // If the npc has a cond property, evaluate it
+      if (props.cond) {
+        const conditionMet = this.questTracker.isConditionMet(props.cond);
+        if (conditionMet) {
+          this.gameView.ensureNpcVisible(id);
+        } else {
+          this.gameView.ensureNpcHidden(id);
         }
       }
     });

@@ -113,6 +113,20 @@ class GameView {
     return this.npcViews[id];
   }
 
+  ensureNpcHidden(id) {
+    const view = this.npcViews[id];
+    if (view && view.isVisible()) {
+      view.hide();
+    }
+  }
+
+  ensureNpcVisible(id) {
+    const view = this.npcViews[id];
+    if (view && !view.isVisible()) {
+      view.show();
+    }
+  }
+
   addRemotePcView(pc) {
     const view = new PCView(this.config, this.textures, pc, this.townView);
     this.townView.addView(view.display);
@@ -224,6 +238,7 @@ class GameView {
 
   resetDroneTargets() {
     this.demoDrone.setTargets(this.getAllNpcViews()
+      .filter((npcView) => npcView.isVisible())
       .map((npcView) => ({
         x: npcView.display.x,
         y: npcView.display.y - npcView.display.height,

@@ -42520,6 +42520,7 @@ module.exports = TextScroller;
 /* globals PIXI */
 
 const MoodBalloon = __webpack_require__(/*! ./mood-balloon */ "./src/js/lib/view-pixi/mood-balloon.js");
+const Fader = __webpack_require__(/*! ../helpers-pixi/fader */ "./src/js/lib/helpers-pixi/fader.js");
 
 class CharacterView {
   constructor(config, textures, character, townView) {
@@ -42530,6 +42531,8 @@ class CharacterView {
     this.display = this.createSprite();
     this.moodBalloon = null;
     this.attachments = {};
+    this.fader = new Fader(this.display);
+    this.visible = true;
   }
 
   createSprite() {
@@ -42599,6 +42602,20 @@ class CharacterView {
 
   getAttachment(id) {
     return this.attachments[id];
+  }
+
+  show() {
+    this.fader.fadeIn(1000);
+    this.visible = true;
+  }
+
+  hide() {
+    this.fader.fadeOut(1000);
+    this.visible = false;
+  }
+
+  isVisible() {
+    return this.visible;
   }
 }
 
@@ -43476,4 +43493,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.eba131b05e11a90d51af.js.map
+//# sourceMappingURL=map.67393292b42be0122a77.js.map

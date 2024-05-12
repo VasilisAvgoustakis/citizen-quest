@@ -1,6 +1,7 @@
 /* globals PIXI */
 
 const MoodBalloon = require('./mood-balloon');
+const Fader = require('../helpers-pixi/fader');
 
 class CharacterView {
   constructor(config, textures, character, townView) {
@@ -11,6 +12,8 @@ class CharacterView {
     this.display = this.createSprite();
     this.moodBalloon = null;
     this.attachments = {};
+    this.fader = new Fader(this.display);
+    this.visible = true;
   }
 
   createSprite() {
@@ -80,6 +83,20 @@ class CharacterView {
 
   getAttachment(id) {
     return this.attachments[id];
+  }
+
+  show() {
+    this.fader.fadeIn(1000);
+    this.visible = true;
+  }
+
+  hide() {
+    this.fader.fadeOut(1000);
+    this.visible = false;
+  }
+
+  isVisible() {
+    return this.visible;
   }
 }
 
