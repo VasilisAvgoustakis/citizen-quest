@@ -18,7 +18,7 @@ class SceneryView {
     sprite.anchor.set(0.5, 1);
 
     sprite.position = this.scenery.position;
-    sprite.zIndex = sprite.position.y;
+    sprite.zIndex = this.scenery.zIndex ?? sprite.position.y;
 
     return sprite;
   }

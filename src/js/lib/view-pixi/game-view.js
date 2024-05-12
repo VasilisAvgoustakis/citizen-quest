@@ -60,6 +60,12 @@ class GameView {
     });
   }
 
+  sortScenery() {
+    // Sort layers where scenery can go. The main layer is sorted in the main loop.
+    this.townView.sortViews('back');
+    this.townView.sortViews('front');
+  }
+
   ensureSceneryHidden(id) {
     const view = this.sceneryViews[id];
     if (view && view.isVisible()) {
@@ -251,7 +257,7 @@ class GameView {
       this.pcView.animate(time);
     }
 
-    this.townView.sortViews();
+    this.townView.sortViews('main');
     this.demoDrone.animate(time);
     this.camera.update();
     this.updateGuideArrow();

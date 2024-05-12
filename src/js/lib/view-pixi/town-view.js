@@ -58,8 +58,8 @@ class TownView {
     this.getLayerContainer(layer).addChild(view);
   }
 
-  sortViews() {
-    this.mainLayer.sortChildren();
+  sortViews(layer = 'main') {
+    this.getLayerContainer(layer).sortChildren();
   }
 }
 

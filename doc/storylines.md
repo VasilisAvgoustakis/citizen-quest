@@ -133,6 +133,9 @@ properties:
 - **layer**: (string, optional) The layer that the object will be rendered on. This is used to
   determine the order in which objects are rendered. Can be 'back' (behind characters), 'main'
   (at the same level as characters, the default) or 'front' (in front of all characters).
+- **zIndex**: (number, optional) The z-index of the object. This is used to determine the order in
+  which objects are rendered. Objects with higher z-index are rendered on top of objects with lower
+  z-index. The default is 0.
 
 ### NPCs
 

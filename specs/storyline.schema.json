@@ -105,6 +105,9 @@
           "type": "string",
           "enum": ["back", "main", "front"]
         },
+        "zIndex": {
+          "type": "integer"
+        },
         "cond": {
           "$ref": "#/definitions/condition"
         }

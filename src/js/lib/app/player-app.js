@@ -121,6 +121,7 @@ class PlayerApp {
         this.updateNpcMoods();
         this.gameView.resetDroneTargets();
         this.playerOverlayMgr.decisionLabelI18n.setText(storyline.decision || '');
+        this.gameView.sortScenery();
       }
     });
 
