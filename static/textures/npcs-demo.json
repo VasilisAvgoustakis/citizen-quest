@@ -162,6 +162,18 @@
       "sourceSize": {"w": 144, "h": 156},
       "anchor": {"x": 72, "y": 0}
     },
+    "policeWoman": {
+      "frame": {"x": 504, "y": 312, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 72, "y": 0}
+    },
+    "policeMan": {
+      "frame": {"x": 576, "y": 312, "w": 72, "h": 156},
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
+      "sourceSize": {"w": 72, "h": 156},
+      "anchor": {"x": 72, "y": 0}
+    },
     "dogTan": {
       "frame": {"x": 0, "y": 468, "w": 72, "h": 156},
       "spriteSourceSize": {"x": 0, "y": 0, "w": 72, "h": 156},
