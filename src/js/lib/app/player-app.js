@@ -43,7 +43,7 @@ class PlayerApp {
     this.stateHandler = null;
     this.gameServerController = null;
 
-    this.playerOverlayMgr = new PlayerOverlayManager(config, this.lang, playerId);
+    this.playerOverlayMgr = new PlayerOverlayManager(config, this.lang, playerId, this.flags);
     this.$element = this.playerOverlayMgr.$element;
     this.stats = new Stats();
     this.playerOverlayMgr.$element.append(this.stats.dom);

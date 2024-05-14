@@ -27,3 +27,13 @@ game:
         x: 0
         y: 0
       zoom: 0.5
+#  scoreCounter:
+#    categories:
+#      - id: empathy
+#        pattern: 'pnt\.empathy\..*'
+#      - id: information
+#        pattern: 'pnt\.information\..*'
+#      - id: equity
+#        pattern: 'pnt\.equity\..*'
+#      - id: empowerment
+#        pattern: 'pnt\.empowerment\..*'

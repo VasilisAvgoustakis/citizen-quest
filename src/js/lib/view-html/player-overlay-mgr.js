@@ -7,12 +7,15 @@ const ScoringOverlay = require('./scoring-overlay');
 const TitleOverlay = require('./title-overlay');
 const IntroScreen = require('./intro-screen');
 const DecisionScreen = require('./decision-screen');
+const ScoreCounterOverlay = require('./score-counter-overlay');
+const ScoreCounterAdapter = require('../adapters/score-counter-adapter');
 
 class PlayerOverlayManager {
-  constructor(config, lang, playerId) {
+  constructor(config, lang, playerId, flags) {
     this.config = config;
     this.lang = lang;
     this.playerId = playerId;
+    this.flags = flags;
 
     const width = this.config?.game?.playerAppWidth ?? 1024;
     const height = this.config?.game?.playerAppHeight ?? 768;
@@ -55,6 +58,20 @@ class PlayerOverlayManager {
 
     this.dialogueOverlay = new DialogueOverlay(this.config, this.lang);
     this.$element.append(this.dialogueOverlay.$element);
+
+    if (this.config.game.scoreCounter) {
+      const options = this.config.game.scoreCounter;
+      this.scoreCounterOverlay = new ScoreCounterOverlay(
+        this.config,
+        options.categories.map((category) => category.id)
+      );
+      this.$element.append(this.scoreCounterOverlay.$element);
+      this.scoreCounterAdapter = new ScoreCounterAdapter(
+        options,
+        this.flags,
+        this.scoreCounterOverlay
+      );
+    }
 
     this.scoringOverlay = new ScoringOverlay(this.config, this.lang);
     this.$element.append(this.scoringOverlay.$element);

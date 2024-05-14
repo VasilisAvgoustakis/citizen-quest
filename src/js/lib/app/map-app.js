@@ -15,6 +15,8 @@ const MultiTextScroller = require('../view-html/multi-text-scroller');
 const InclusionBar = require('../view-html/inclusion-bar');
 const Scenery = require('../model/scenery');
 const SceneryView = require('../view-pixi/scenery-view');
+const ScoreCounterOverlay = require('../view-html/score-counter-overlay');
+const ScoreCounterAdapter = require('../adapters/score-counter-adapter');
 
 class MapApp {
   constructor(config, textures) {
@@ -94,6 +96,20 @@ class MapApp {
 
     this.inclusionBar = new InclusionBar(config);
     this.$element.append(this.inclusionBar.$element);
+
+    if (this.config.map.scoreCounter) {
+      const options = this.config.map.scoreCounter;
+      this.scoreCounterOverlay = new ScoreCounterOverlay(
+        this.config,
+        options.categories.map((category) => category.id)
+      );
+      this.$element.append(this.scoreCounterOverlay.$element);
+      this.scoreCounterAdapter = new ScoreCounterAdapter(
+        options,
+        this.flags,
+        this.scoreCounterOverlay
+      );
+    }
 
     // Input
     this.keyboardInputMgr = new KeyboardInputMgr();

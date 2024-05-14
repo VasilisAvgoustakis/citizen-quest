@@ -1,2 +1,12 @@
 map:
   promptScrollSpeed: 130
+#  scoreCounter:
+#    categories:
+#      - id: empathy
+#        pattern: 'pnt\.empathy\..*'
+#      - id: information
+#        pattern: 'pnt\.information\..*'
+#      - id: equity
+#        pattern: 'pnt\.equity\..*'
+#      - id: empowerment
+#        pattern: 'pnt\.empowerment\..*'
