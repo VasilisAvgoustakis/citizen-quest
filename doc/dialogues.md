@@ -37,9 +37,14 @@ there's no transition, the dialogue ends.
 
 All nodes have these properties:
 
-- **id**: (string) The node's id. If it's not set, it's generated automatically.
-- **type**: (string, default: 'statement') The node's type. Can be 'statement', 'random', 'cycle', or
+- `id`: (string) The node's id. If it's not set, it's generated automatically.
+- `type`: (string, default: 'statement') The node's type. Can be 'statement', 'random', 'cycle', or
   'sequence'.
+- `cond` (string, optional): A logical expression (see below).
+- `set` (string | array, optional): One or more flags that are set when the node becomes active.
+
+A node can only become active if its `cond` is true. When it becomes active, it
+sets all of its `set` flags.
 
 ### Statement nodes
 
@@ -69,15 +74,10 @@ Example:
 
 Statement nodes have these properties:
 
-- `cond` (string, optional): A logical expression (see below).
 - `text` (string | object, required): The text to display.
 - `class` (string | array, optional): One or more classes that are set when the text is displayed.
-- `set` (string | array, optional): One or more flags that are set when the node becomes active.
 - `responses` (array, optional): An array of response objects.
 - `then` (string, optional): The ID of the next node to transition to.
-
-A statement node can only become active if its `cond` is true. When it becomes active, it
-sets all of its `set` flags. 
 
 If the statement node has `responses`, they player will have to pick one of them to continue.
 
@@ -108,92 +108,26 @@ The player can select only one response, which will set all of its `set` flags.
 If the response has a `then` property, the dialogue will transition to the node specified in it, or
 display the text as if it were a statement node with no properties other than `text`.
 
-### Random nodes
+### Collection nodes
 
-Example:
+Collection nodes are those that have child nodes. Collection nodes transition to one of their
+children depending on their specific type.
 
-```json
-{
-  "id": "node_id",
-  "type": "random",
-  "items": [
-    
-  ]
-}
-```
-
-Random nodes have these properties:
+Children are specified through the `items` property.
 
 - `items` (array, required): An array of node objects.
 
-When a random node becomes active, it randomly picks one of its child `items` and transitions to it.
+Collection nodes only consider children with a `cond` property that is true (or no `cond`) when
+deciding which one to transition to.
 
-### Cycle nodes
+their behavior is defined by their type:
 
-Example:
-
-```json
-{
-  "id": "node_id",
-  "type": "cycle",
-  "items": [
-    
-  ]
-}
-```
-
-Cycle nodes have these properties:
-
-- `items` (array, required): An array of node objects.
-
-When a cycle node becomes active, it picks the first elegible one of its child `items` and 
-transitions to it. Child items become elegible in order starting with the first, and once all of 
-them have been picked, the cycle starts again.
-
-### Sequence nodes
-
-Example:
-
-```json
-{
-  "id": "node_id",
-  "type": "sequence",
-  "items": [
-    
-  ]
-}
-```
-
-Sequence nodes have these properties:
-
-- `items` (array, required): An array of node objects.
-- `cond` (string, optional): A logical expression (see below).
-- `set` (string | array, optional): One or more flags that are set when the response is selected.
-
-
-When a sequence node becomes active, it goes through all of its child `items` in order. Sequence nodes
-can even be nested.
-
-### First nodes
-    
-```json
-  {
-    "id": "node_id",
-    "type": "first",
-    "items": [
-        
-    ]
-  }
-```
-
-First nodes have these properties:
-
-- `items` (array, required): An array of node objects.
-- `cond` (string, optional): A logical expression (see below).
-- `set` (string | array, optional): One or more flags that are set when the response is selected.
-
-When a first node becomes active, it continues to the first of its child `items` that is valid 
-(its `cond` property is true).
+- `sequence`: Go through all of their children in order.
+- `first`: Transitions to the first children node.
+- `random`: Randomly pick one of their children and transition to it.
+- `cycle`: Each time a `cycle` node becomes active, it picks the next of its children in order
+    (starting with the first, on the first activation). When all children have been picked, it 
+    starts again.
 
 ## i18n
 
