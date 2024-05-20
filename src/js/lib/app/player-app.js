@@ -18,6 +18,8 @@ const RoundTimer = require('../model/round-timer');
 const readEnding = require('../model/dialogues/ending-reader');
 const Scenery = require('../model/scenery');
 const DialogueIteratorContext = require('../model/dialogues/dialogue-iterator-context');
+const DialogueEffectFactory = require('../model/dialogues/effects/dialogue-effect-factory');
+require('../model/dialogues/effects/dialogue-effect-init');
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -25,6 +27,7 @@ class PlayerApp {
     this.textures = textures;
     this.lang = config.game.defaultLanguage;
     this.playerId = playerId;
+    this.cacheBuster = Date.now();
 
     // Game logic
     this.storylineId = null;
@@ -48,7 +51,11 @@ class PlayerApp {
     this.stats = new Stats();
     this.playerOverlayMgr.$element.append(this.stats.dom);
 
-    this.dialogueSequencer = new DialogueSequencer(this.playerOverlayMgr.dialogueOverlay);
+    this.dialogueEffectFactory = new DialogueEffectFactory(this);
+    this.dialogueSequencer = new DialogueSequencer(
+      this.dialogueEffectFactory,
+      this.playerOverlayMgr.dialogueOverlay
+    );
 
     // Temporary scoring manager
     this.seenFlags = {};
@@ -417,6 +424,12 @@ class PlayerApp {
       this.questTracker.getEndingDialogue(),
       this.getDialogueContext()
     );
+  }
+
+  getStorylineImageUrl(filename) {
+    const imagePath = this.config.game.storylineImagePaths.replace('%storyline%', this.storylineId);
+    const ensureSlash = imagePath.charAt(imagePath.length - 1) !== '/' ? '/' : '';
+    return `${imagePath}${ensureSlash}${filename}?t=${this.cacheBuster}`;
   }
 }
 

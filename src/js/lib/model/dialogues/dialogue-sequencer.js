@@ -1,13 +1,16 @@
 const EventEmitter = require('events');
 const DialogueIterator = require('./dialogue-iterator');
 const DialogueSequencerTextState = require('./dialogue-sequencer-states/text-state');
+const DialogueSequencerEffectState = require('./dialogue-sequencer-states/effect-state');
 
 class DialogueSequencer {
-  constructor(dialogueOverlay) {
+  constructor(dialogueEffectFactory, dialogueOverlay) {
+    this.dialogueEffectFactory = dialogueEffectFactory;
     this.dialogueOverlay = dialogueOverlay;
     this.dialogue = null;
     this.dialogueIterator = null;
     this.uiState = null;
+    this.activeEffects = {};
 
     this.events = new EventEmitter();
   }
@@ -49,7 +52,12 @@ class DialogueSequencer {
     }
 
     if (this.handledByUI(dialogueIterator.getActiveNode())) {
-      this.setUiState(new DialogueSequencerTextState(this));
+      const nodeType = dialogueIterator.getActiveNode().type;
+      if (nodeType === 'statement') {
+        this.setUiState(new DialogueSequencerTextState(this));
+      } else if (nodeType === 'effect') {
+        this.setUiState(new DialogueSequencerEffectState(this));
+      }
     } else {
       this.onDialogueEnd();
     }
@@ -68,11 +76,42 @@ class DialogueSequencer {
 
   // eslint-disable-next-line class-methods-use-this
   handledByUI(node) {
-    return node && node.type === 'statement';
+    return node && (node.type === 'statement' || node.type === 'effect');
+  }
+
+  createEffect(effectType, effectOptions) {
+    this.terminateEffect(effectType);
+    this.activeEffects[effectType] = this.dialogueEffectFactory
+      .createEffect(effectType, effectOptions);
+    return this.activeEffects[effectType];
+  }
+
+  endActiveEffect(effectType, endDoneCallback) {
+    if (this.activeEffects[effectType]) {
+      this.activeEffects[effectType].end(endDoneCallback);
+    } else {
+      endDoneCallback();
+    }
+  }
+
+  terminateEffect(effectType) {
+    if (this.activeEffects[effectType]) {
+      this.activeEffects[effectType].terminate();
+    }
+    delete this.activeEffects[effectType];
+  }
+
+  terminateAllEffects() {
+    Object.keys(this.activeEffects).forEach((effectType) => {
+      this.activeEffects[effectType].terminate();
+    });
+    this.activeEffects = {};
   }
 
   terminate() {
+    this.events.emit('terminate');
     this.setUiState(null);
+    this.terminateAllEffects();
     this.dialogueOverlay.hide();
     this.dialogueIterator = null;
     this.dialogue = null;

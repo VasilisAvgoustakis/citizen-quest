@@ -32,7 +32,11 @@ class Dialogue {
         node.items.forEach((item, index) => {
           item.parent = node;
           if (!item.type) {
-            item.type = 'statement';
+            if (item.effect) {
+              item.type = 'effect';
+            } else {
+              item.type = 'statement';
+            }
           }
           if (!item.id) {
             item.id = `${node.id}-${index}`;

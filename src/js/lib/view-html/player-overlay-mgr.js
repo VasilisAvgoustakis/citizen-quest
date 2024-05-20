@@ -2,6 +2,7 @@ const { I18nTextAdapter } = require('../helpers/i18n');
 const Countdown = require('./countdown');
 const QuestOverlay = require('./quest-overlay');
 const TextScreen = require('./text-screen');
+const ImageDisplayOverlay = require('./image-display-overlay');
 const DialogueOverlay = require('./dialogue-overlay');
 const ScoringOverlay = require('./scoring-overlay');
 const TitleOverlay = require('./title-overlay');
@@ -29,6 +30,9 @@ class PlayerOverlayManager {
     this.$pixiWrapper = $('<div></div>')
       .addClass('pixi-wrapper')
       .appendTo(this.$element);
+
+    this.imageDisplayOverlay = new ImageDisplayOverlay(this.config, this.lang);
+    this.$element.append(this.imageDisplayOverlay.$element);
 
     this.$storylineBar = $('<div></div>')
       .addClass('storyline-bar')
@@ -98,6 +102,7 @@ class PlayerOverlayManager {
     this.lang = lang;
 
     this.titleOverlay.setLang(this.lang);
+    this.imageDisplayOverlay.setLang(this.lang);
     this.dialogueOverlay.setLang(this.lang);
     this.textScreen.setLang(this.lang);
     this.questOverlay.setLang(this.lang);

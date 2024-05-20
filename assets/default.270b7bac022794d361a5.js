@@ -44620,6 +44620,8 @@ const RoundTimer = __webpack_require__(/*! ../model/round-timer */ "./src/js/lib
 const readEnding = __webpack_require__(/*! ../model/dialogues/ending-reader */ "./src/js/lib/model/dialogues/ending-reader.js");
 const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/scenery.js");
 const DialogueIteratorContext = __webpack_require__(/*! ../model/dialogues/dialogue-iterator-context */ "./src/js/lib/model/dialogues/dialogue-iterator-context.js");
+const DialogueEffectFactory = __webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-factory */ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js");
+__webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-init */ "./src/js/lib/model/dialogues/effects/dialogue-effect-init.js");
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -44627,6 +44629,7 @@ class PlayerApp {
     this.textures = textures;
     this.lang = config.game.defaultLanguage;
     this.playerId = playerId;
+    this.cacheBuster = Date.now();
 
     // Game logic
     this.storylineId = null;
@@ -44650,7 +44653,11 @@ class PlayerApp {
     this.stats = new Stats();
     this.playerOverlayMgr.$element.append(this.stats.dom);
 
-    this.dialogueSequencer = new DialogueSequencer(this.playerOverlayMgr.dialogueOverlay);
+    this.dialogueEffectFactory = new DialogueEffectFactory(this);
+    this.dialogueSequencer = new DialogueSequencer(
+      this.dialogueEffectFactory,
+      this.playerOverlayMgr.dialogueOverlay
+    );
 
     // Temporary scoring manager
     this.seenFlags = {};
@@ -45020,6 +45027,12 @@ class PlayerApp {
       this.getDialogueContext()
     );
   }
+
+  getStorylineImageUrl(filename) {
+    const imagePath = this.config.game.storylineImagePaths.replace('%storyline%', this.storylineId);
+    const ensureSlash = imagePath.charAt(imagePath.length - 1) !== '/' ? '/' : '';
+    return `${imagePath}${ensureSlash}${filename}?t=${this.cacheBuster}`;
+  }
 }
 
 module.exports = PlayerApp;
@@ -45319,6 +45332,37 @@ function fitParentWidth($element) {
 module.exports = {
   fitParentWidth,
 };
+
+
+/***/ }),
+
+/***/ "./src/js/lib/helpers-web/img-preload.js":
+/*!***********************************************!*\
+  !*** ./src/js/lib/helpers-web/img-preload.js ***!
+  \***********************************************/
+/***/ ((module) => {
+
+async function imgPreload(src, timeout = null) {
+  let timeoutTimer = null;
+  return new Promise((resolve, reject) => {
+    if (timeout) {
+      timeoutTimer = setTimeout(() => {
+        resolve();
+      }, timeout);
+    }
+    const img = new Image();
+    img.onload = () => {
+      clearTimeout(timeoutTimer);
+      resolve();
+    };
+    img.onerror = (err) => {
+      reject(err);
+    };
+    img.src = src;
+  });
+}
+
+module.exports = imgPreload;
 
 
 /***/ }),
@@ -46960,6 +47004,7 @@ class DialogueIterator {
     let transitioned = false;
     switch (this.activeNode.type) {
       case 'statement':
+      case 'effect':
         transitioned = this.nextOnStatement();
         break;
       case 'root':
@@ -47283,6 +47328,69 @@ module.exports = DialogueSequencerState;
 
 /***/ }),
 
+/***/ "./src/js/lib/model/dialogues/dialogue-sequencer-states/effect-state.js":
+/*!******************************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/dialogue-sequencer-states/effect-state.js ***!
+  \******************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const DialogueSequencerState = __webpack_require__(/*! ./dialogue-sequencer-state */ "./src/js/lib/model/dialogues/dialogue-sequencer-states/dialogue-sequencer-state.js");
+const DialogueEffect = __webpack_require__(/*! ../effects/dialogue-effect */ "./src/js/lib/model/dialogues/effects/dialogue-effect.js");
+
+class DialogueSequencerEffectState extends DialogueSequencerState {
+  constructor(dialogueSequencer) {
+    super(dialogueSequencer);
+    this.handleEffectStartComplete = this.handleEffectStartComplete.bind(this);
+    this.handleEffectEndComplete = this.handleEffectEndComplete.bind(this);
+    this.effectType = typeof this.activeNode.effect === 'string'
+      ? this.activeNode.effect : this.activeNode.effect.type;
+    this.effectOptions = typeof this.activeNode.effect === 'string'
+      ? {} : this.activeNode.effect.options || {};
+    this.effectPhase = this.activeNode.effect?.phase || 'all';
+    this.effect = null;
+  }
+
+  onBegin() {
+    if (this.effectPhase === 'end') {
+      this.dialogueSequencer.endActiveEffect(this.effectType, this.handleEffectEndComplete);
+    } else {
+      this.effect = this.dialogueSequencer.createEffect(this.effectType, this.effectOptions);
+      this.effect.start(this.handleEffectStartComplete);
+    }
+  }
+
+  onAction() {
+    if (this.effect
+      && this.effect.state !== DialogueEffect.States.IDLE
+      && this.effect.state !== DialogueEffect.States.FINISHED) {
+      this.effect.handleActionButton();
+    }
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  onEnd() {
+    // Nothing to do
+  }
+
+  handleEffectStartComplete() {
+    if (this.effectPhase === 'all') {
+      this.effect.end(this.handleEffectEndComplete);
+    } else if (this.effectPhase === 'start') {
+      this.dialogueSequencer.endUi();
+    }
+  }
+
+  handleEffectEndComplete() {
+    this.dialogueSequencer.terminateEffect(this.effectType);
+    this.dialogueSequencer.endUi();
+  }
+}
+
+module.exports = DialogueSequencerEffectState;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/model/dialogues/dialogue-sequencer-states/response-state.js":
 /*!********************************************************************************!*\
   !*** ./src/js/lib/model/dialogues/dialogue-sequencer-states/response-state.js ***!
@@ -47433,13 +47541,16 @@ module.exports = DialogueSequencerThenTextState;
 const EventEmitter = __webpack_require__(/*! events */ "./node_modules/events/events.js");
 const DialogueIterator = __webpack_require__(/*! ./dialogue-iterator */ "./src/js/lib/model/dialogues/dialogue-iterator.js");
 const DialogueSequencerTextState = __webpack_require__(/*! ./dialogue-sequencer-states/text-state */ "./src/js/lib/model/dialogues/dialogue-sequencer-states/text-state.js");
+const DialogueSequencerEffectState = __webpack_require__(/*! ./dialogue-sequencer-states/effect-state */ "./src/js/lib/model/dialogues/dialogue-sequencer-states/effect-state.js");
 
 class DialogueSequencer {
-  constructor(dialogueOverlay) {
+  constructor(dialogueEffectFactory, dialogueOverlay) {
+    this.dialogueEffectFactory = dialogueEffectFactory;
     this.dialogueOverlay = dialogueOverlay;
     this.dialogue = null;
     this.dialogueIterator = null;
     this.uiState = null;
+    this.activeEffects = {};
 
     this.events = new EventEmitter();
   }
@@ -47481,7 +47592,12 @@ class DialogueSequencer {
     }
 
     if (this.handledByUI(dialogueIterator.getActiveNode())) {
-      this.setUiState(new DialogueSequencerTextState(this));
+      const nodeType = dialogueIterator.getActiveNode().type;
+      if (nodeType === 'statement') {
+        this.setUiState(new DialogueSequencerTextState(this));
+      } else if (nodeType === 'effect') {
+        this.setUiState(new DialogueSequencerEffectState(this));
+      }
     } else {
       this.onDialogueEnd();
     }
@@ -47500,11 +47616,42 @@ class DialogueSequencer {
 
   // eslint-disable-next-line class-methods-use-this
   handledByUI(node) {
-    return node && node.type === 'statement';
+    return node && (node.type === 'statement' || node.type === 'effect');
+  }
+
+  createEffect(effectType, effectOptions) {
+    this.terminateEffect(effectType);
+    this.activeEffects[effectType] = this.dialogueEffectFactory
+      .createEffect(effectType, effectOptions);
+    return this.activeEffects[effectType];
+  }
+
+  endActiveEffect(effectType, endDoneCallback) {
+    if (this.activeEffects[effectType]) {
+      this.activeEffects[effectType].end(endDoneCallback);
+    } else {
+      endDoneCallback();
+    }
+  }
+
+  terminateEffect(effectType) {
+    if (this.activeEffects[effectType]) {
+      this.activeEffects[effectType].terminate();
+    }
+    delete this.activeEffects[effectType];
+  }
+
+  terminateAllEffects() {
+    Object.keys(this.activeEffects).forEach((effectType) => {
+      this.activeEffects[effectType].terminate();
+    });
+    this.activeEffects = {};
   }
 
   terminate() {
+    this.events.emit('terminate');
     this.setUiState(null);
+    this.terminateAllEffects();
     this.dialogueOverlay.hide();
     this.dialogueIterator = null;
     this.dialogue = null;
@@ -47556,7 +47703,11 @@ class Dialogue {
         node.items.forEach((item, index) => {
           item.parent = node;
           if (!item.type) {
-            item.type = 'statement';
+            if (item.effect) {
+              item.type = 'effect';
+            } else {
+              item.type = 'statement';
+            }
           }
           if (!item.id) {
             item.id = `${node.id}-${index}`;
@@ -47587,6 +47738,333 @@ class Dialogue {
 }
 
 module.exports = Dialogue;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js":
+/*!***********************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js ***!
+  \***********************************************************************/
+/***/ ((module) => {
+
+class DialogueEffectFactory {
+  static Effects = {};
+
+  /**
+   * Constructor
+   *
+   * @param {PlayerApp} app
+   */
+  constructor(app) {
+    this.app = app;
+  }
+
+  /**
+   * Create a new effect.
+   *
+   * @param {string} name
+   *  The name of the effect.
+   * @param {object} options
+   *  Options for the effect.
+   * @returns {DialogueEffect}
+   *  The effect.
+   */
+  createEffect(name, options) {
+    const Effect = DialogueEffectFactory.Effects[name];
+    if (!Effect) {
+      throw new Error(`Unknown effect: ${name}`);
+    }
+    return new Effect(this.app, options);
+  }
+}
+
+DialogueEffectFactory.registerEffect = function (name, effectClass) {
+  DialogueEffectFactory.Effects[name] = effectClass;
+};
+
+module.exports = DialogueEffectFactory;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/model/dialogues/effects/dialogue-effect-image.js":
+/*!*********************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/effects/dialogue-effect-image.js ***!
+  \*********************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { registerEffect } = __webpack_require__(/*! ./dialogue-effect-factory */ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js");
+const DialogueEffect = __webpack_require__(/*! ./dialogue-effect */ "./src/js/lib/model/dialogues/effects/dialogue-effect.js");
+
+class DialogueEffectImage extends DialogueEffect {
+  constructor(app, options) {
+    super(app, options);
+    this.timeoutTimer = null;
+  }
+
+  onStarting(doneCallback) {
+    const src = this.getSrcUrl(this.options.src);
+    this.app.playerOverlayMgr.imageDisplayOverlay.showImage(src, {
+      size: this.options.size,
+      enterAnimationDuration: this.options.enterAnimationDuration,
+    }).then(() => {
+      this.timeoutTimer = setTimeout(() => {
+        doneCallback();
+      }, this.options.enterAnimationDuration + this.options.displayDuration);
+    });
+  }
+
+  onEnding(doneCallback) {
+    this.app.playerOverlayMgr.imageDisplayOverlay.hideImage(this.options.exitAnimationDuration);
+    this.timeoutTimer = setTimeout(() => {
+      doneCallback();
+    }, this.options.exitAnimationDuration);
+  }
+
+  terminate() {
+    clearTimeout(this.timeoutTimer);
+    this.app.playerOverlayMgr.imageDisplayOverlay.clear();
+    super.terminate();
+  }
+
+  getSrcUrl(src) {
+    if (typeof src === 'string') {
+      return this.app.getStorylineImageUrl(src);
+    }
+    if (typeof src === 'object') {
+      return Object.fromEntries(
+        Object.entries(src).map(([key, value]) => [key, this.app.getStorylineImageUrl(value)])
+      );
+    }
+    throw new Error('Invalid src type');
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getDefaultOptions() {
+    return {
+      enterAnimationDuration: 1000,
+      exitAnimationDuration: 1000,
+      displayDuration: 3000,
+      size: 'full',
+    };
+  }
+}
+
+registerEffect('image', DialogueEffectImage);
+
+module.exports = DialogueEffectImage;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/model/dialogues/effects/dialogue-effect-init.js":
+/*!********************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/effects/dialogue-effect-init.js ***!
+  \********************************************************************/
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+// Init all effects.
+// This file should only contain imports of all effects, so it can be easily modded.
+//
+__webpack_require__(/*! ./dialogue-effect-image */ "./src/js/lib/model/dialogues/effects/dialogue-effect-image.js");
+__webpack_require__(/*! ./dialogue-effect-pannzoom */ "./src/js/lib/model/dialogues/effects/dialogue-effect-pannzoom.js");
+
+
+/***/ }),
+
+/***/ "./src/js/lib/model/dialogues/effects/dialogue-effect-pannzoom.js":
+/*!************************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/effects/dialogue-effect-pannzoom.js ***!
+  \************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { registerEffect } = __webpack_require__(/*! ./dialogue-effect-factory */ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js");
+const DialogueEffect = __webpack_require__(/*! ./dialogue-effect */ "./src/js/lib/model/dialogues/effects/dialogue-effect.js");
+
+class DialogueEffectPanNZoom extends DialogueEffect {
+  constructor(data) {
+    super(data);
+  }
+}
+
+registerEffect('pan-n-zoom', DialogueEffectPanNZoom);
+
+module.exports = DialogueEffectPanNZoom;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/model/dialogues/effects/dialogue-effect.js":
+/*!***************************************************************!*\
+  !*** ./src/js/lib/model/dialogues/effects/dialogue-effect.js ***!
+  \***************************************************************/
+/***/ ((module) => {
+
+/* eslint-disable class-methods-use-this,no-unused-vars */
+/**
+ * Abstract class for dialogue effects.
+ *
+ * Dialogue effects are used to add visual effects to dialogues.
+ * Each effect type should create a subclass of this class and register it. The game engine
+ * will create an instance of the effect when it is used in a dialogue, passing the options
+ * specified in the dialogue script.
+ *
+ * Effects lifetime is as follows:
+ *
+ * 1. The effect is created.
+ * 2. The start() method is called.
+ * 3. The animate method is called repeatedly, until the effect ends.
+ * 4. The handleActionButton method is called if the action button is pressed before the effect is done.
+ * 5. The effect may announce it is done starting by calling the doneCallback passed to the start method.
+ * 6. The end() method is called to start reversing any changes made by the effect.
+ * 7. The effect may announce it is done ending by calling the doneCallback passed to the end method.
+ * 7. The terminate() method is called to clean up any resources used by the effect.
+ *
+ * Until the effect is done ending:
+ * - The animate method will be called.
+ * - The handleActionButton method will be called.
+ *
+ * After the effect is done ending:
+ *  - The animate method will not be called.
+ *  - The handleActionButton method will no longer be called.
+ *
+ * start() and end() may never be called, if the effect is terminated before it starts, or ends...
+ * ... but terminate() will always be called, and should ensure to clean up any resources and
+ * undo any lasting changes made by the effect.
+ *
+ * Once the terminate method is called:
+ *  - No other methods will be called.
+ */
+class DialogueEffect {
+  /**
+   * Constructor
+   *
+   * @param {PlayerApp} app
+   *  The player app.
+   * @param {object} options
+   *  Options for the effect.
+   */
+  constructor(app, options = {}) {
+    if (this.constructor === DialogueEffect) {
+      throw new TypeError('DialogueEffect is an abstract class and cannot be instantiated.');
+    }
+    this.app = app;
+    this.options = { ...this.getDefaultOptions(), ...options };
+    this.state = DialogueEffect.States.IDLE;
+  }
+
+  /**
+   * Start the effect.
+   *
+   * This method is called by the dialogue sequencer when the effect is to be started.
+   *
+   * @param {function} doneCallback
+   *  Callback to be called when the effect is done.
+   */
+  start(doneCallback) {
+    this.state = DialogueEffect.States.STARTING;
+    this.onStarting(() => {
+      doneCallback();
+      this.state = DialogueEffect.States.ACTIVE;
+      this.onActive();
+    });
+  }
+
+  /**
+   * End the effect, and clean up.
+   *
+   * This method is called by the dialogue sequencer when the changes made by the effect should be
+   * reversed. The effect should call the doneCallback when it is done.
+   */
+  end(doneCallback) {
+    this.state = DialogueEffect.States.ENDING;
+    this.onEnding(() => {
+      doneCallback();
+      this.state = DialogueEffect.States.FINISHED;
+      this.onFinished();
+    });
+  }
+
+  /**
+   * Update the effect.
+   *
+   * @param {number} time
+   */
+  animate(time) {
+  }
+
+  /**
+   * Handle the action button while the effect is not done.
+   *
+   * This method is called by the dialogue sequencer when the action button is pressed, if the
+   * effect is not done. The effect can use this to skip to the end of the effect, or
+   * accelerate it.
+   */
+  handleActionButton() {
+  }
+
+  /**
+   * Get the default options for the effect.
+   *
+   * This method should be overridden by subclasses to provide default options for the effect.
+   * @return {{}}
+   */
+  getDefaultOptions() {
+    return {};
+  }
+
+  /**
+   * Terminate the effect.
+   */
+  terminate() {
+
+  }
+
+  /**
+   * Called when the effect is starting.
+   *
+   * @param {function} doneCallback
+   *  Callback to be called when the effect is done starting.
+   */
+  onStarting(doneCallback) {
+
+  }
+
+  /**
+   * Called when the effect is active.
+   */
+  onActive() {
+
+  }
+
+  /**
+   * Called when the effect is ending.
+   *
+   * @param {function} doneCallback
+   *  Callback to be called when the effect is done ending.
+   */
+  onEnding(doneCallback) {
+
+  }
+
+  /**
+   * Called when the effect is finished.
+   */
+  onFinished() {
+
+  }
+}
+
+DialogueEffect.States = {
+  IDLE: 'idle',
+  STARTING: 'starting',
+  ACTIVE: 'active',
+  ENDING: 'ending',
+  FINISHED: 'finished',
+};
+
+module.exports = DialogueEffect;
 
 
 /***/ }),
@@ -48984,6 +49462,107 @@ module.exports = DialogueOverlay;
 
 /***/ }),
 
+/***/ "./src/js/lib/view-html/image-display-overlay.js":
+/*!*******************************************************!*\
+  !*** ./src/js/lib/view-html/image-display-overlay.js ***!
+  \*******************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const imgPreload = __webpack_require__(/*! ../helpers-web/img-preload */ "./src/js/lib/helpers-web/img-preload.js");
+
+class ImageDisplayOverlay {
+  constructor(config, lang) {
+    this.config = config;
+    this.lang = lang;
+
+    this.$element = $('<div></div>')
+      .addClass('image-display-overlay');
+
+    this.$image = $('<div></div>')
+      .addClass('image')
+      .appendTo(this.$element);
+
+    this.imageSrc = null;
+    this.currOptions = null;
+    this.optionClasses = [];
+
+    window.ido = this;
+  }
+
+  getLocalImageSrc() {
+    if (typeof this.imageSrc === 'string') {
+      return this.imageSrc;
+    }
+    if (typeof this.imageSrc === 'object') {
+      return this.imageSrc[this.lang] ?? this.imageSrc.en;
+    }
+    return null;
+  }
+
+  setLang(lang) {
+    this.lang = lang;
+    if (this.imageSrc) {
+      this.replaceSrc();
+    }
+  }
+
+  async replaceSrc() {
+    this.localSrc = this.getLocalImageSrc();
+    const thisCallSrc = this.localSrc;
+    return imgPreload(this.localSrc, this.currOptions.imageLoadTimeout)
+      .then(() => {
+        if (this.localSrc === thisCallSrc) {
+          this.$image.css('background-image', `url(${this.localSrc})`);
+          return true;
+        }
+        return false;
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  async showImage(src, options) {
+    this.clear();
+    this.currOptions = { ...ImageDisplayOverlay.defaultOptions, ...options };
+    this.imageSrc = src;
+    return this.replaceSrc().then((replacedSrc) => {
+      if (replacedSrc) {
+        this.$image.css('animation-duration', `${this.currOptions.enterAnimationDuration}ms`);
+        this.$image.addClass('shown');
+        this.optionClasses.push(`size-${this.currOptions.size}`);
+        this.$image.addClass(this.optionClasses);
+      }
+    });
+  }
+
+  hideImage(exitAnimationDuration = 500) {
+    this.$image.css('animation-duration', `${exitAnimationDuration}ms`);
+    this.$image.addClass('hidden');
+  }
+
+  clear() {
+    this.$image.removeClass('shown');
+    this.$image.removeClass('hidden');
+    this.$image.removeClass(this.optionClasses);
+    this.$image.css('background-image', '');
+    this.imageSrc = null;
+    this.currOptions = null;
+    this.optionClasses = [];
+  }
+}
+
+ImageDisplayOverlay.defaultOptions = {
+  size: 'full',
+  imageLoadTimeout: 3000,
+  enterAnimationDuration: 500,
+};
+
+module.exports = ImageDisplayOverlay;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/view-html/inclusion-bar.js":
 /*!***********************************************!*\
   !*** ./src/js/lib/view-html/inclusion-bar.js ***!
@@ -49146,6 +49725,7 @@ const { I18nTextAdapter } = __webpack_require__(/*! ../helpers/i18n */ "./src/js
 const Countdown = __webpack_require__(/*! ./countdown */ "./src/js/lib/view-html/countdown.js");
 const QuestOverlay = __webpack_require__(/*! ./quest-overlay */ "./src/js/lib/view-html/quest-overlay.js");
 const TextScreen = __webpack_require__(/*! ./text-screen */ "./src/js/lib/view-html/text-screen.js");
+const ImageDisplayOverlay = __webpack_require__(/*! ./image-display-overlay */ "./src/js/lib/view-html/image-display-overlay.js");
 const DialogueOverlay = __webpack_require__(/*! ./dialogue-overlay */ "./src/js/lib/view-html/dialogue-overlay.js");
 const ScoringOverlay = __webpack_require__(/*! ./scoring-overlay */ "./src/js/lib/view-html/scoring-overlay.js");
 const TitleOverlay = __webpack_require__(/*! ./title-overlay */ "./src/js/lib/view-html/title-overlay.js");
@@ -49173,6 +49753,9 @@ class PlayerOverlayManager {
     this.$pixiWrapper = $('<div></div>')
       .addClass('pixi-wrapper')
       .appendTo(this.$element);
+
+    this.imageDisplayOverlay = new ImageDisplayOverlay(this.config, this.lang);
+    this.$element.append(this.imageDisplayOverlay.$element);
 
     this.$storylineBar = $('<div></div>')
       .addClass('storyline-bar')
@@ -49242,6 +49825,7 @@ class PlayerOverlayManager {
     this.lang = lang;
 
     this.titleOverlay.setLang(this.lang);
+    this.imageDisplayOverlay.setLang(this.lang);
     this.dialogueOverlay.setLang(this.lang);
     this.textScreen.setLang(this.lang);
     this.questOverlay.setLang(this.lang);
@@ -50609,17 +51193,17 @@ class GameView {
     this.targetArrow?.show();
   }
 
-  cameraFollowPc() {
+  cameraFollowPc(instant = true) {
     if (this.pcView) {
       this.camera.setTarget(this.pcView.display);
-      this.cameraUsePreset('walking', true);
+      this.cameraUsePreset('walking', instant);
       this.demoDrone.active = false;
     }
   }
 
-  cameraFollowDrone() {
+  cameraFollowDrone(instant = true) {
     this.camera.setTarget(this.demoDrone);
-    this.cameraUsePreset('drone', true);
+    this.cameraUsePreset('drone', instant);
     this.demoDrone.active = true;
   }
 
@@ -51361,7 +51945,7 @@ module.exports = JSON.parse('{"$schema":"http://json-schema.org/draft-07/schema#
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/dialogue.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"id":{"$ref":"#/definitions/node_id"},"items":{"$ref":"#/definitions/nodeList"}},"required":["id","items"],"definitions":{"node_id":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][a-zA-Z0-9_-]*$"},"nodeList":{"type":"array","items":{"$ref":"#/definitions/node"}},"node":{"oneOf":[{"$ref":"#/definitions/sequence"},{"$ref":"#/definitions/random"},{"$ref":"#/definitions/cycle"},{"$ref":"#/definitions/first"},{"$ref":"#/definitions/statement"}]},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}]},"class":{"type":"string","minLength":1,"maxLength":100,"pattern":"^-?[_a-zA-Z]+[_a-zA-Z0-9-]*$"},"classes":{"oneOf":[{"$ref":"#/definitions/class"},{"type":"array","items":{"$ref":"#/definitions/class"}}]},"flag_id":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][.a-zA-Z0-9_]*$"},"flags":{"type":"array","items":{"$ref":"#/definitions/flag_id"},"minItems":0,"maxItems":100},"flag_assignments":{"type":"array","items":{"$ref":"#/definitions/flag_assignment"},"minItems":0,"maxItems":100},"flag_assignment":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][.a-zA-Z0-9_-]*(\\\\s*[+-]?=\\\\s*[0-9]{1,3})?$"},"condition":{"type":"string","minLength":1,"maxLength":1000},"sequence":{"type":"object","properties":{"type":{"const":"sequence"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"random":{"type":"object","properties":{"type":{"const":"random"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"cycle":{"type":"object","properties":{"type":{"const":"cycle"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"first":{"type":"object","properties":{"type":{"const":"first"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"statement":{"type":"object","properties":{"type":{"const":"statement"},"id":{"$ref":"#/definitions/node_id"},"cond":{"$ref":"#/definitions/condition"},"text":{"$ref":"#/definitions/text"},"class":{"$ref":"#/definitions/classes"},"set":{"$ref":"#/definitions/flag_assignments"},"responses":{"type":"array","items":{"$ref":"#/definitions/response"}}},"required":["text"]},"response":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"text":{"$ref":"#/definitions/text"},"class":{"$ref":"#/definitions/classes"},"set":{"$ref":"#/definitions/flag_assignments"},"then":{"$ref":"#/definitions/node_id"},"thenText":{"$ref":"#/definitions/text"},"thenClass":{"$ref":"#/definitions/classes"}},"required":["text"]}}}');
+module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/dialogue.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"id":{"$ref":"#/definitions/node_id"},"items":{"$ref":"#/definitions/nodeList"}},"required":["id","items"],"definitions":{"node_id":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][a-zA-Z0-9_-]*$"},"nodeList":{"type":"array","items":{"$ref":"#/definitions/node"}},"node":{"oneOf":[{"$ref":"#/definitions/sequence"},{"$ref":"#/definitions/random"},{"$ref":"#/definitions/cycle"},{"$ref":"#/definitions/first"},{"$ref":"#/definitions/statement"},{"$ref":"#/definitions/effect_node"}]},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}]},"class":{"type":"string","minLength":1,"maxLength":100,"pattern":"^-?[_a-zA-Z]+[_a-zA-Z0-9-]*$"},"classes":{"oneOf":[{"$ref":"#/definitions/class"},{"type":"array","items":{"$ref":"#/definitions/class"}}]},"flag_id":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][.a-zA-Z0-9_]*$"},"flags":{"type":"array","items":{"$ref":"#/definitions/flag_id"},"minItems":0,"maxItems":100},"flag_assignments":{"type":"array","items":{"$ref":"#/definitions/flag_assignment"},"minItems":0,"maxItems":100},"flag_assignment":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][.a-zA-Z0-9_-]*(\\\\s*[+-]?=\\\\s*[0-9]{1,3})?$"},"condition":{"type":"string","minLength":1,"maxLength":1000},"sequence":{"type":"object","properties":{"type":{"const":"sequence"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"random":{"type":"object","properties":{"type":{"const":"random"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"cycle":{"type":"object","properties":{"type":{"const":"cycle"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"first":{"type":"object","properties":{"type":{"const":"first"},"items":{"$ref":"#/definitions/nodeList"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"}},"required":["type","items"]},"statement":{"type":"object","properties":{"type":{"const":"statement"},"id":{"$ref":"#/definitions/node_id"},"cond":{"$ref":"#/definitions/condition"},"text":{"$ref":"#/definitions/text"},"class":{"$ref":"#/definitions/classes"},"set":{"$ref":"#/definitions/flag_assignments"},"responses":{"type":"array","items":{"$ref":"#/definitions/response"}},"then":{"$ref":"#/definitions/node_id"}},"required":["text"]},"response":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"text":{"$ref":"#/definitions/text"},"class":{"$ref":"#/definitions/classes"},"set":{"$ref":"#/definitions/flag_assignments"},"then":{"$ref":"#/definitions/node_id"},"thenText":{"$ref":"#/definitions/text"},"thenClass":{"$ref":"#/definitions/classes"}},"required":["text"]},"effect_node":{"type":"object","properties":{"type":{"const":"effect"},"id":{"$ref":"#/definitions/node_id"},"cond":{"$ref":"#/definitions/condition"},"set":{"$ref":"#/definitions/flag_assignments"},"effect":{"$ref":"#/definitions/effect"},"then":{"$ref":"#/definitions/node_id"}},"required":["effect"]},"effect":{"oneOf":[{"$ref":"#/definitions/effect_type"},{"type":"object","properties":{"type":{"$ref":"#/definitions/effect_type"},"options":{"type":"object"},"phase":{"enum":["start","end","all"],"default":"all"}}}]},"effect_type":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z_][a-zA-Z0-9_-]*$"}}}');
 
 /***/ }),
 
@@ -51586,4 +52170,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.23cee5187efb33537b47.js.map
+//# sourceMappingURL=default.270b7bac022794d361a5.js.map

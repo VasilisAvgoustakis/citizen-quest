@@ -27,6 +27,7 @@ game:
         x: 0
         y: 0
       zoom: 0.5
+  storylineImagePaths: 'static/storyline-images/%storyline%'
 #  scoreCounter:
 #    categories:
 #      - id: empathy

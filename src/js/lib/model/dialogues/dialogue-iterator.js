@@ -96,6 +96,7 @@ class DialogueIterator {
     let transitioned = false;
     switch (this.activeNode.type) {
       case 'statement':
+      case 'effect':
         transitioned = this.nextOnStatement();
         break;
       case 'root':

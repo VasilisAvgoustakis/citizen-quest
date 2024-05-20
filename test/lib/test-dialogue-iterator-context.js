@@ -3,7 +3,12 @@ const FlagStore = require('../../src/js/lib/model/flag-store');
 
 class TestDialogueIteratorContext extends DialogueIteratorContext {
   constructor() {
-    super(new FlagStore());
+    super(new FlagStore(), {
+      'test-action': (options = {}) => {
+        this.actionHandlerCalls.push(options);
+      },
+    });
+    this.actionHandlerCalls = [];
     this.randomValues = [];
   }
 

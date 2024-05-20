@@ -1,0 +1,56 @@
+@keyframes show {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes hide {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.image-display-overlay {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  align-items: center;
+  justify-content: center;
+
+  .image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transform: translateX(100%);
+
+    &.size-full {
+    }
+
+    &.size-dialogue {
+      max-height: 40%;
+    }
+
+    &.shown {
+      animation: show 0.5s forwards;
+    }
+
+    &.hidden {
+      animation: hide 0.5s forwards;
+    }
+  }
+}

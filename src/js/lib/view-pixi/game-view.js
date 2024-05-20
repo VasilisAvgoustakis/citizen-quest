@@ -207,17 +207,17 @@ class GameView {
     this.targetArrow?.show();
   }
 
-  cameraFollowPc() {
+  cameraFollowPc(instant = true) {
     if (this.pcView) {
       this.camera.setTarget(this.pcView.display);
-      this.cameraUsePreset('walking', true);
+      this.cameraUsePreset('walking', instant);
       this.demoDrone.active = false;
     }
   }
 
-  cameraFollowDrone() {
+  cameraFollowDrone(instant = true) {
     this.camera.setTarget(this.demoDrone);
-    this.cameraUsePreset('drone', true);
+    this.cameraUsePreset('drone', instant);
     this.demoDrone.active = true;
   }
 

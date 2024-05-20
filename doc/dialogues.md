@@ -38,8 +38,8 @@ there's no transition, the dialogue ends.
 All nodes have these properties:
 
 - `id`: (string) The node's id. If it's not set, it's generated automatically.
-- `type`: (string, default: 'statement') The node's type. Can be 'statement', 'random', 'cycle', or
-  'sequence'.
+- `type`: (string, default: 'statement') The node's type. Can be 'statement', 'effect', 'random', 
+     'cycle', or 'sequence'.
 - `cond` (string, optional): A logical expression (see below).
 - `set` (string | array, optional): One or more flags that are set when the node becomes active.
 
@@ -107,6 +107,75 @@ The player can select only one response, which will set all of its `set` flags.
 
 If the response has a `then` property, the dialogue will transition to the node specified in it, or
 display the text as if it were a statement node with no properties other than `text`.
+
+### Effect nodes
+
+Effect nodes are nodes that perform an effect when they become active. They don't display any text.
+
+Example:
+
+```json
+{
+    "id": "node_id",
+    "type": "effect",
+    "cond": "flag1 | (^flag2 & flag3)",
+    "effect": {
+        "type": "effect_type",
+        "options": {
+            "option1": "value1",
+            "option2": "value2"
+        }
+    },
+    "set": ["flag3", "flag4"],
+    "then": "node_id"
+}
+```
+
+They have these properties:
+
+- `effect` (string | object, optional): An effect to perform when the node becomes active (see below).
+- `then` (string, optional): The ID of the next node to transition to.
+
+#### Effects
+
+Effects are performed when the node becomes active. They can be used to make all types of visual 
+changes to the game. Dialogues don't specify the possible effects, they're offered by the 
+game engine and made available to the dialogue interpreter as a sort of runtime environment.
+
+An effect object has these properties:
+
+- `type` (string, required): The type of effect to perform.
+- `options` (object, optional): Named arguments for the effect.
+- `phase` (string, optional): The phase of the effect to perform. Can be 'start', 'end', or 'all'.
+
+The `phase` property indicates whether to begin and end the effect (`all`) with no nodes in between,
+or to `start` the effect ending it after, when a second effect node with the same type and `end` 
+in the `phase` property is found.
+
+It might be possible to have more than one effect active at the same time, but only one of each type
+can be started. If a second effect node with the same type is found, the first one is terminated
+unceremoniously.
+
+##### The Image effect
+
+The image effect displays an image on the screen. The image can be shown between dialogue nodes,
+or using separate `start` and `end` phases it can remain on screen throughout a portion of the 
+dialogue.
+
+The image effect allows these options:
+
+- `src` (string|object, required): The image to display. Can be a filename string, 
+  or an object with language codes as keys and filenames as values. The image will be searched
+  in the path specified in the `game.storylineImagePaths` config key.
+- `enterAnimationDuration` (number, optional, default: 1000): The duration of the enter animation 
+    in milliseconds.
+- `exitAnimationDuration` (number, optional, default: 1000): The duration of the exit animation
+    in milliseconds.
+- `displayDuration` (number, optional, default: 3000): How long the image will be displayed once 
+    it entered, in milliseconds.
+- `size` (string, optional, default: 'full'): The size of the image on screen. Can be `full` or 
+    `dialogue`. choosing `dialogue` sizes the image so it fits between the top and bottom dialogue 
+    boxes.
 
 ### Collection nodes
 
