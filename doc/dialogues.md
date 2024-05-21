@@ -177,6 +177,29 @@ The image effect allows these options:
     `dialogue`. choosing `dialogue` sizes the image so it fits between the top and bottom dialogue 
     boxes.
 
+##### The Pan-N-Zoom effect
+
+The pan-n-zoom effect moves the camera to a specific position and zoom level, and then resets it
+to the original values. The effect can be done in a single node, or in two nodes, one for the initial
+move and one for the reset, by using separate `start` and `end` phases.
+
+The pan-n-zoom effect allows these options:
+
+- `target` (string|object, required): The target to focus on. Can be a string with the target's ID,
+    or an object with a set of coordinates in `{x, y}` format.
+- `targetType` (string, optional, default: 'npc'): The type of target, in case it's a string. 
+    Can be `npc` or `scenery`.
+- `targetOffset` (object, optional, default: `{x: 0, y: 0}`): An offset to apply to the target's 
+    position.
+- `zoom` (number, optional, default: 0.75): The zoom level to apply.
+- `maxSpeed` (number, optional, default: 1): The maximum speed of the camera.
+- `minSpeed` (number, optional, default: 0.1): The minimum speed of the camera.
+- `accelerationFactor` (number, optional, default: 0.01): The acceleration factor of the camera.
+- `slowDownDistance` (number, optional, default: 400): The distance at which the camera starts to 
+    slow down.
+- `displayDuration` (number, optional, default: 3000): How long the camera will stay in the final 
+    position, in milliseconds.
+
 ### Collection nodes
 
 Collection nodes are those that have child nodes. Collection nodes transition to one of their

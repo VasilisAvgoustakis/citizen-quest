@@ -39981,7 +39981,7 @@ class PlayerAppIdleState extends PlayerAppState {
 
   onEnter() {
     this.playerApp.playerOverlayMgr.showTitleScreen();
-    this.playerApp.gameView.cameraFollowDrone();
+    this.playerApp.gameView.cameraFollowDemoDrone();
     this.playerApp.inputRouter.routeToMenus(this.playerApp);
   }
 
@@ -43246,8 +43246,89 @@ const { registerEffect } = __webpack_require__(/*! ./dialogue-effect-factory */ 
 const DialogueEffect = __webpack_require__(/*! ./dialogue-effect */ "./src/js/lib/model/dialogues/effects/dialogue-effect.js");
 
 class DialogueEffectPanNZoom extends DialogueEffect {
-  constructor(data) {
-    super(data);
+  constructor(app, options) {
+    super(app, options);
+    this.storeCameraPreset();
+    this.drone = null;
+    this.displayTimer = null;
+  }
+
+  storeCameraPreset() {
+    this.savedPreset = this.app.gameView.cameraPreset;
+    this.savedTarget = this.app.gameView.camera.getTarget();
+    this.hasReset = false;
+  }
+
+  restoreCameraPreset(instant = false) {
+    if (!this.hasReset) {
+      this.hasReset = true;
+      this.app.gameView.camera.setTarget(this.savedTarget);
+      this.app.gameView.cameraUsePreset(this.savedPreset, instant);
+    }
+  }
+
+  getTargetCoordinates() {
+    if (this.options.targetType === 'npc') {
+      const npcView = this.app.gameView.getNpcView(this.options.target);
+      return npcView.character.position;
+    }
+    if (this.options.targetType === 'scenery') {
+      const sceneryView = this.app.gameView.getSceneryView(this.options.target);
+      return sceneryView.scenery.position;
+    }
+    if (typeof this.options.target === 'object' && this.options.target.x && this.options.target.y) {
+      return this.options.target;
+    }
+    throw new Error('Invalid target type');
+  }
+
+  onStarting(doneCallback) {
+    const targetCoordinates = this.getTargetCoordinates();
+    const startPosition = this.app.gameView.camera.getTarget().position;
+    this.drone = this.app.gameView.createDrone({
+      minSpeed: this.options.minSpeed,
+      maxSpeed: this.options.maxSpeed,
+      accelerationFactor: this.options.accelerationFactor,
+      slowDownDistance: this.options.slowDownDistance,
+    }, startPosition.x, startPosition.y);
+    this.drone.setTargets([targetCoordinates]);
+    this.drone.events.once('reachedAllTargets', () => {
+      this.displayTimer = setTimeout(() => {
+        doneCallback();
+      }, this.options.displayDuration);
+    });
+    this.app.gameView.cameraUsePreset({
+      offset: this.options.targetOffset,
+      zoom: this.options.zoom,
+    });
+    this.app.gameView.camera.setTarget(this.drone);
+  }
+
+  onEnding(doneCallback) {
+    this.drone.setTargets([{ x: this.savedTarget.x, y: this.savedTarget.y }]);
+    this.drone.events.once('reachedAllTargets', () => {
+      this.restoreCameraPreset();
+      doneCallback();
+    });
+  }
+
+  terminate() {
+    clearTimeout(this.displayTimer);
+    this.restoreCameraPreset(true);
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getDefaultOptions() {
+    return {
+      targetType: 'npc',
+      targetOffset: { x: 0, y: 0 },
+      zoom: 0.75,
+      maxSpeed: 1,
+      minSpeed: 0.1,
+      accelerationFactor: 0.01,
+      slowDownDistance: 400,
+      displayDuration: 3000,
+    };
   }
 }
 
@@ -46563,6 +46644,99 @@ module.exports = DemoDrone;
 
 /***/ }),
 
+/***/ "./src/js/lib/view-pixi/drone.js":
+/*!***************************************!*\
+  !*** ./src/js/lib/view-pixi/drone.js ***!
+  \***************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/* globals PIXI */
+const EventEmitter = __webpack_require__(/*! events */ "./node_modules/events/events.js");
+
+const SPEED_CAP = 1000 / 10;
+
+class Drone {
+  constructor(options, x = 0, y = 0) {
+    this.options = { ...Drone.defaultOptions, ...options };
+    this.x = x;
+    this.y = y;
+    this.width = 0;
+    this.height = 0;
+    this.speed = 0;
+    this.pauseCounter = 0;
+    this.targets = [];
+    this.currentTargetIndex = 0;
+    this.reachedAllTargets = true;
+    this.events = new EventEmitter();
+  }
+
+  setPosition(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  setTargets(targets) {
+    this.targets = targets;
+    this.currentTargetIndex = 0;
+    this.reachedAllTargets = false;
+  }
+
+  onReachedTarget() {
+    this.events.emit('reachedTarget', this.currentTargetIndex);
+    this.speed = 0;
+    this.currentTargetIndex += 1;
+    if (this.currentTargetIndex === this.targets.length) {
+      this.reachedAllTargets = true;
+      this.events.emit('reachedAllTargets');
+    } else {
+      this.pauseCounter = this.options.pauseBetweenTargets;
+    }
+  }
+
+  animate(time) {
+    if (this.reachedAllTargets === true || this.targets.length === 0) {
+      return;
+    }
+
+    const deltaMS = Math.min(time / PIXI.settings.TARGET_FPMS, SPEED_CAP);
+    if (this.pauseCounter > 0) {
+      this.pauseCounter = Math.max(0, this.pauseCounter - deltaMS);
+    }
+
+    if (this.pauseCounter === 0) {
+      const target = this.targets[this.currentTargetIndex];
+      const dx = target.x - this.x;
+      const dy = target.y - this.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > this.options.minSpeed * deltaMS) {
+        const targetSpeed = Math.max(
+          this.options.minSpeed,
+          this.options.maxSpeed * Math.min(1, distance / this.options.slowDownDistance)
+        );
+        this.speed += (Math.sign(targetSpeed - this.speed)
+          * this.options.accelerationFactor * deltaMS);
+        this.x += (dx / distance) * this.speed * deltaMS;
+        this.y += (dy / distance) * this.speed * deltaMS;
+      } else {
+        this.onReachedTarget();
+      }
+    }
+  }
+}
+
+Drone.defaultOptions = {
+  pauseBetweenTargets: 1000,
+  minSpeed: 0.1,
+  maxSpeed: 0.5,
+  accelerationFactor: 0.01,
+  slowDownDistance: 400,
+};
+
+module.exports = Drone;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/view-pixi/game-view-camera.js":
 /*!**************************************************!*\
   !*** ./src/js/lib/view-pixi/game-view-camera.js ***!
@@ -46595,7 +46769,6 @@ class GameViewCamera {
     this.target = null;
     this.offset = new PIXI.Point(0, 0);
     this.zoom = 1;
-    window.camera = this;
   }
 
   /**
@@ -46604,10 +46777,16 @@ class GameViewCamera {
    * @param {PIXI.DisplayObject} target
    *  An object within the child that the camera should follow.
    */
-  setTarget(target, relOffsetX = 0, relOffsetY = 0, zoom = 1) {
+  setTarget(target) {
     this.target = target;
-    this.setRelativeOffset(relOffsetX, relOffsetY);
-    this.setZoom(zoom);
+  }
+
+  getTarget() {
+    return this.target;
+  }
+
+  getPosition() {
+    return this.display.position;
   }
 
   setRelativeOffset(xFactor, yFactor) {
@@ -46705,6 +46884,7 @@ const TownView = __webpack_require__(/*! ./town-view */ "./src/js/lib/view-pixi/
 const GameViewCamera = __webpack_require__(/*! ./game-view-camera */ "./src/js/lib/view-pixi/game-view-camera.js");
 const DemoDrone = __webpack_require__(/*! ./demo-drone */ "./src/js/lib/view-pixi/demo-drone.js");
 const SceneryView = __webpack_require__(/*! ./scenery-view */ "./src/js/lib/view-pixi/scenery-view.js");
+const Drone = __webpack_require__(/*! ./drone */ "./src/js/lib/view-pixi/drone.js");
 
 class GameView {
   constructor(config, textures, pixiApp, width, height) {
@@ -46714,8 +46894,10 @@ class GameView {
 
     this.townView = new TownView(this.config, this.textures);
     this.camera = new GameViewCamera(this.townView.display, width, height);
+    this.cameraPreset = null;
     this.demoDrone = new DemoDrone();
     this.demoDrone.setPosition(this.townView.width / 2, this.townView.height / 2);
+    this.drones = [];
 
     this.sceneryViews = {};
     this.npcViews = {};
@@ -46757,6 +46939,10 @@ class GameView {
     Object.keys(this.sceneryViews).forEach((id) => {
       this.removeScenery(id);
     });
+  }
+
+  getSceneryView(id) {
+    return this.sceneryViews[id];
   }
 
   sortScenery() {
@@ -46905,6 +47091,19 @@ class GameView {
   showDistractions() {
     this.targetArrow?.show();
   }
+f
+  createDrone(options, x, y) {
+    const newDrone = new Drone(options, x, y);
+    this.drones.push(newDrone);
+    return newDrone;
+  }
+
+  destroyDrone(drone) {
+    const index = this.drones.indexOf(drone);
+    if (index !== -1) {
+      this.drones.splice(index, 1);
+    }
+  }
 
   cameraFollowPc(instant = true) {
     if (this.pcView) {
@@ -46914,18 +47113,21 @@ class GameView {
     }
   }
 
-  cameraFollowDrone(instant = true) {
+  cameraFollowDemoDrone(instant = true) {
     this.camera.setTarget(this.demoDrone);
     this.cameraUsePreset('drone', instant);
     this.demoDrone.active = true;
   }
 
-  cameraUsePreset(presetName, instant = false) {
-    const preset = this.config?.game?.cameraPresets?.[presetName] || {};
+  cameraUsePreset(presetOrName, instant = false) {
+    const preset = typeof presetOrName === 'string'
+      ? this.config?.game?.cameraPresets?.[presetOrName] || {}
+      : presetOrName;
     const offsetX = preset?.offset?.x || 0;
     const offsetY = preset?.offset?.y || -0.8;
     const zoom = preset?.zoom || 1;
 
+    this.cameraPreset = preset;
     if (instant) {
       this.camera.setRelativeOffset(offsetX, offsetY);
       this.camera.setZoom(zoom);
@@ -46973,6 +47175,7 @@ class GameView {
 
     this.townView.sortViews('main');
     this.demoDrone.animate(time);
+    this.drones.forEach((drone) => drone.animate(time));
     this.camera.update();
     this.updateGuideArrow();
   }
@@ -47929,4 +48132,4 @@ const Character = __webpack_require__(/*! ./lib/model/character */ "./src/js/lib
 
 /******/ })()
 ;
-//# sourceMappingURL=player.0f1c0d6e65a1c90ef3ff.js.map
+//# sourceMappingURL=player.fe861bc3eb1e26e85da5.js.map

@@ -9,7 +9,7 @@ class PlayerAppIdleState extends PlayerAppState {
 
   onEnter() {
     this.playerApp.playerOverlayMgr.showTitleScreen();
-    this.playerApp.gameView.cameraFollowDrone();
+    this.playerApp.gameView.cameraFollowDemoDrone();
     this.playerApp.inputRouter.routeToMenus(this.playerApp);
   }
 

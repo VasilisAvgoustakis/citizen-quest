@@ -24,7 +24,6 @@ class GameViewCamera {
     this.target = null;
     this.offset = new PIXI.Point(0, 0);
     this.zoom = 1;
-    window.camera = this;
   }
 
   /**
@@ -33,10 +32,16 @@ class GameViewCamera {
    * @param {PIXI.DisplayObject} target
    *  An object within the child that the camera should follow.
    */
-  setTarget(target, relOffsetX = 0, relOffsetY = 0, zoom = 1) {
+  setTarget(target) {
     this.target = target;
-    this.setRelativeOffset(relOffsetX, relOffsetY);
-    this.setZoom(zoom);
+  }
+
+  getTarget() {
+    return this.target;
+  }
+
+  getPosition() {
+    return this.display.position;
   }
 
   setRelativeOffset(xFactor, yFactor) {

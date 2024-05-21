@@ -6,6 +6,7 @@ const TownView = require('./town-view');
 const GameViewCamera = require('./game-view-camera');
 const DemoDrone = require('./demo-drone');
 const SceneryView = require('./scenery-view');
+const Drone = require('./drone');
 
 class GameView {
   constructor(config, textures, pixiApp, width, height) {
@@ -15,8 +16,10 @@ class GameView {
 
     this.townView = new TownView(this.config, this.textures);
     this.camera = new GameViewCamera(this.townView.display, width, height);
+    this.cameraPreset = null;
     this.demoDrone = new DemoDrone();
     this.demoDrone.setPosition(this.townView.width / 2, this.townView.height / 2);
+    this.drones = [];
 
     this.sceneryViews = {};
     this.npcViews = {};
@@ -58,6 +61,10 @@ class GameView {
     Object.keys(this.sceneryViews).forEach((id) => {
       this.removeScenery(id);
     });
+  }
+
+  getSceneryView(id) {
+    return this.sceneryViews[id];
   }
 
   sortScenery() {
@@ -206,6 +213,19 @@ class GameView {
   showDistractions() {
     this.targetArrow?.show();
   }
+f
+  createDrone(options, x, y) {
+    const newDrone = new Drone(options, x, y);
+    this.drones.push(newDrone);
+    return newDrone;
+  }
+
+  destroyDrone(drone) {
+    const index = this.drones.indexOf(drone);
+    if (index !== -1) {
+      this.drones.splice(index, 1);
+    }
+  }
 
   cameraFollowPc(instant = true) {
     if (this.pcView) {
@@ -215,18 +235,21 @@ class GameView {
     }
   }
 
-  cameraFollowDrone(instant = true) {
+  cameraFollowDemoDrone(instant = true) {
     this.camera.setTarget(this.demoDrone);
     this.cameraUsePreset('drone', instant);
     this.demoDrone.active = true;
   }
 
-  cameraUsePreset(presetName, instant = false) {
-    const preset = this.config?.game?.cameraPresets?.[presetName] || {};
+  cameraUsePreset(presetOrName, instant = false) {
+    const preset = typeof presetOrName === 'string'
+      ? this.config?.game?.cameraPresets?.[presetOrName] || {}
+      : presetOrName;
     const offsetX = preset?.offset?.x || 0;
     const offsetY = preset?.offset?.y || -0.8;
     const zoom = preset?.zoom || 1;
 
+    this.cameraPreset = preset;
     if (instant) {
       this.camera.setRelativeOffset(offsetX, offsetY);
       this.camera.setZoom(zoom);
@@ -274,6 +297,7 @@ class GameView {
 
     this.townView.sortViews('main');
     this.demoDrone.animate(time);
+    this.drones.forEach((drone) => drone.animate(time));
     this.camera.update();
     this.updateGuideArrow();
   }
