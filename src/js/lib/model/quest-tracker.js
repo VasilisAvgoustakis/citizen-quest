@@ -352,6 +352,14 @@ class QuestTracker {
         const oldCount = this.activeCounter;
         this.activeCounter = newCount;
         this.events.emit('stageCountChanged', this.activeQuestId, newCount, oldCount);
+
+        // Check if the counter reached the max value
+        if (stage.counter.max !== undefined && newCount >= stage.counter.max) {
+          if (stage.counter.set !== undefined) {
+            const flags = [stage.counter.set ?? []].flat();
+            flags.forEach((flag) => this.flags.set(flag, 1, 'counter'));
+          }
+        }
       }
     }
   }

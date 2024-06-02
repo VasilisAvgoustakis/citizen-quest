@@ -203,6 +203,20 @@
         "icon": {
           "type": "string",
           "enum": ["happy", "angry", "idea", "person"]
+        },
+        "set": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/flagId"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/flagId"
+              }
+            }
+          ],
+          "errorMessage": "must be a flag or an array of flags."
         }
       },
       "additionalProperties": false,
