@@ -78,7 +78,8 @@ class ServerSocketConnector {
   isSyncable(flag) {
     return (flag.startsWith('quest.') && flag.endsWith('.done'))
       || flag.startsWith('pnt.')
-      || flag.startsWith('inc.');
+      || flag.startsWith('inc.')
+      || flag.startsWith('global.');
   }
 
   // To do: Move this outside of this class

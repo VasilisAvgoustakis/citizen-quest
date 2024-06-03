@@ -114,8 +114,10 @@ would go within `items`.
 
 #### Use of flags
 
-There are three types of flags that are synchronized between clients:
+There are four types of flags that are synchronized between clients:
 
+- Those beginning with `global.` which are used to track global state (useful for conditions that
+  determine npc and scenery visibility).'
 - Those beginning with `pnt.`, which are used to track "scoring".
 - Those beginning with `inc.`, which are used to track achievements (i.e. people included in the
   decision associated with the storyline).
