@@ -105,6 +105,9 @@ function validateStorylineQuestCompletes(storyline) {
             });
           });
         }
+        if (stage.counter && stage.counter.set) {
+          isQuestCompleted = isQuestCompleted || stage.counter.set.includes(completion);
+        }
       });
     }
     if (!isQuestCompleted) {

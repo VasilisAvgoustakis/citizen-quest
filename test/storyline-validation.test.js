@@ -104,6 +104,11 @@ describe('Storyline validation', () => {
       const storyline = loadFixture('references/bad-quest-not-complete.yml');
       expect(() => validateStoryline(storyline)).to.throw('Quest mayorIdea sets no flags to complete itself');
     });
+
+    it('should validate quests that are completed through a counter instead of dialogue', () => {
+      const storyline = loadFixture('references/quest-complete-via-counter.yml');
+      expect(() => validateStoryline(storyline)).to.not.throw();
+    });
   });
 
   describe('expressions', () => {
