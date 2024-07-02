@@ -43,6 +43,7 @@ class MapApp {
         this.addScenery(new Scenery(id, props));
       });
       this.updateScenery();
+      mapApp.updateNpcs();
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
@@ -52,10 +53,12 @@ class MapApp {
     this.questTracker.events.on('questActive', () => {
       this.updateQuestMarkers();
       this.updateScenery();
+      mapApp.updateNpcs();
     });
     this.questTracker.events.on('questDone', () => {
       this.updateQuestMarkers();
       this.updateScenery();
+      mapApp.updateNpcs();
     });
 
     this.pcs = {};
@@ -140,6 +143,7 @@ class MapApp {
       }
 
       this.updateScenery();
+      mapApp.updateNpcs();
     });
 
     // Game loop
