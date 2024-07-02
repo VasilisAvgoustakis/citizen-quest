@@ -261,6 +261,35 @@ class MapApp {
     });
   }
 
+  ensureNpcHidden(id) {
+    const view = this.npcViews[id];
+    if (view && view.isVisible()) {
+      view.hide();
+    }
+  }
+
+  ensureNpcVisible(id) {
+    const view = this.npcViews[id];
+    if (view && !view.isVisible()) {
+      view.show();
+    }
+  }
+
+  updateNpcs() {
+    const storyline = this.config.storylines[this.storylineId];
+    Object.entries(storyline.npcs || {}).forEach(([id, props]) => {
+      // If the npc has a cond property, evaluate it
+      if (props.cond) {
+        const conditionMet = this.questTracker.isConditionMet(props.cond);
+        if (conditionMet) {
+          this.ensureNpcVisible(id);
+        } else {
+          this.ensureNpcHidden(id);
+        }
+      }
+    });
+  }
+
   addMarker(character, icon) {
     const marker = new MapMarker(
       this.textures['map-markers'].textures['pin-marker'],

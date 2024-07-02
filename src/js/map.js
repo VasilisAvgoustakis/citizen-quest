@@ -88,6 +88,7 @@ const MapApp = require('./lib/app/map-app');
         });
         if (flagsChanged) {
           mapApp.updateQuestMarkers();
+          mapApp.updateNpcs();
         }
       }
     });
