@@ -39738,7 +39738,7 @@ class MapApp {
         this.addScenery(new Scenery(id, props));
       });
       this.updateScenery();
-      mapApp.updateNpcs();
+      this.updateNpcs();
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
@@ -39748,12 +39748,12 @@ class MapApp {
     this.questTracker.events.on('questActive', () => {
       this.updateQuestMarkers();
       this.updateScenery();
-      mapApp.updateNpcs();
+      this.updateNpcs();
     });
     this.questTracker.events.on('questDone', () => {
       this.updateQuestMarkers();
       this.updateScenery();
-      mapApp.updateNpcs();
+      this.updateNpcs();
     });
 
     this.pcs = {};
@@ -39838,7 +39838,7 @@ class MapApp {
       }
 
       this.updateScenery();
-      mapApp.updateNpcs();
+      this.updateNpcs();
     });
 
     // Game loop
@@ -43666,4 +43666,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.f95f6b35d1422c84e653.js.map
+//# sourceMappingURL=map.5a577143dea757e1f050.js.map
