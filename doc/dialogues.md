@@ -198,7 +198,9 @@ The pan-n-zoom effect allows these options:
 - `slowDownDistance` (number, optional, default: 400): The distance at which the camera starts to 
     slow down.
 - `displayDuration` (number, optional, default: 3000): How long the camera will stay in the final 
-    position, in milliseconds.
+    position, in milliseconds, at the end of the start phase.
+- `displayEndDuration` (number, optional, default: 0): How long the camera will stay in the final
+    position, in milliseconds, at the beginning of the end phase.
 
 ### Collection nodes
 

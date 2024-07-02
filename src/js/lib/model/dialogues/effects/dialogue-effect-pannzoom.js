@@ -61,11 +61,13 @@ class DialogueEffectPanNZoom extends DialogueEffect {
   }
 
   onEnding(doneCallback) {
-    this.drone.setTargets([{ x: this.savedTarget.x, y: this.savedTarget.y }]);
-    this.drone.events.once('reachedAllTargets', () => {
-      this.restoreCameraPreset();
-      doneCallback();
-    });
+    this.displayTimer = setTimeout(() => {
+      this.drone.setTargets([{ x: this.savedTarget.x, y: this.savedTarget.y }]);
+      this.drone.events.once('reachedAllTargets', () => {
+        this.restoreCameraPreset();
+        doneCallback();
+      });
+    }, this.options.displayEndDuration);
   }
 
   terminate() {
@@ -84,6 +86,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
       accelerationFactor: 0.01,
       slowDownDistance: 400,
       displayDuration: 3000,
+      displayEndDuration: 0,
     };
   }
 }
