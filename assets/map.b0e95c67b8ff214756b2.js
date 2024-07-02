@@ -39908,7 +39908,7 @@ class MapApp {
     Object.values(this.npcViews).forEach((npcView) => {
       this.townView.mainLayer.removeChild(npcView.display);
     });
-    this.npcViews = [];
+    this.npcViews = {};
   }
 
   addScenery(scenery) {
@@ -43666,4 +43666,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.5a577143dea757e1f050.js.map
+//# sourceMappingURL=map.b0e95c67b8ff214756b2.js.map

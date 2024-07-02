@@ -213,7 +213,7 @@ class MapApp {
     Object.values(this.npcViews).forEach((npcView) => {
       this.townView.mainLayer.removeChild(npcView.display);
     });
-    this.npcViews = [];
+    this.npcViews = {};
   }
 
   addScenery(scenery) {
