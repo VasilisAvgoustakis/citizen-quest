@@ -16,11 +16,17 @@ const MapApp = require('./lib/app/map-app');
     const configUrl = `${getApiServerUrl()}config`;
 
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
+    let sentryInitialized = false;
     if (sentryDSN) {
       initSentry(sentryDSN);
+      sentryInitialized = true;
     }
 
     const config = await fetchConfig(configUrl);
+    if (!sentryInitialized && config?.system?.sentry?.dsn) {
+      initSentry(config.system.sentry.dsn);
+      sentryInitialized = true;
+    }
     const textures = await fetchTextures('./static/textures', config.textures, 'town-view');
 
     const mapApp = new MapApp(config, textures);

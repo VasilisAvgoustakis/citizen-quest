@@ -35,13 +35,16 @@ const {
   })
   .argv;
 
+let sentryInitialized = false;
 if (sentryDsn) {
-  console.log('Initializing Sentry');
+  console.log('Initializing Sentry (with DSN from command line)');
   Sentry.init({ dsn: sentryDsn });
+  sentryInitialized = true;
 }
 
 const cfgLoader = new CfgLoader(CfgReaderFile, yaml.load);
 cfgLoader.load([
+  '../config/system.yml',
   '../config/game.yml',
   '../config/net.yml',
   '../config/players.yml',
@@ -54,6 +57,11 @@ cfgLoader.load([
   ...[settingsFile].flat(), // settingsFile may be a string or array of strings
 ])
   .then((config) => {
+    if (!sentryInitialized && config?.system?.sentry?.dsn) {
+      console.log('Initializing Sentry (with DSN from configuration)');
+      Sentry.init({ dsn: config.system.sentry.dsn });
+      sentryInitialized = true;
+    }
     if (outputConfiguration) {
       console.log('Active configuration:');
       console.log('--- begin ---');

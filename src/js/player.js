@@ -20,11 +20,17 @@ const Character = require('./lib/model/character');
     const configUrl = `${getApiServerUrl()}config`;
 
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
+    let sentryInitialized = false;
     if (sentryDSN) {
       initSentry(sentryDSN);
+      sentryInitialized = true;
     }
 
     const config = await fetchConfig(configUrl);
+    if (!sentryInitialized && config?.system?.sentry?.dsn) {
+      initSentry(config.system.sentry.dsn);
+      sentryInitialized = true;
+    }
     const textures = await fetchTextures('./static/textures', config.textures, 'town-view');
     const playerApp = new PlayerApp(config, textures, playerId);
     let round = 0;

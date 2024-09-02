@@ -62,6 +62,18 @@ You can use [Swagger Editor](https://editor.swagger.io/) and the
 [AsyncAPI Playground](https://playground.asyncapi.io/) to format the respective specifications in
 a friendly format.
 
+## Sentry support
+
+The server and the clients have support for Sentry. 
+
+The server can take the DSN from the `SENTRY_DSN` environment variable, or through the CLI option
+`--sentry-dsn`.
+
+The clients can take the DSN from the `sentry-dsn` query string parameter.
+
+Both can also get the DSN from the `system.sentry.dsn` configuration key (`config/system.yml`), 
+which can be overriden with the `settings.yml` file.
+
 ## Debugging tools
 
 The following keyboard shortcuts are available in the player app if the `game.userModeShortcuts`

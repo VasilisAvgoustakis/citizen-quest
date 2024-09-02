@@ -32,12 +32,15 @@ const storylineLoader = require('./lib/loader/storyline-loader');
     }
 
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
+    let sentryInitialized = false;
     if (sentryDSN) {
       initSentry(sentryDSN);
+      sentryInitialized = true;
     }
 
     const cfgLoader = new CfgLoader(CfgReaderFetch, yaml.load);
     const config = await cfgLoader.load([
+      'config/system.yml',
       'config/game.yml',
       'config/players.yml',
       'config/i18n.yml',
@@ -49,6 +52,11 @@ const storylineLoader = require('./lib/loader/storyline-loader');
     ]).catch((err) => {
       throw new Error(`Error loading configuration: ${err.message}`);
     });
+
+    if (!sentryInitialized && config?.system?.sentry?.dsn) {
+      initSentry(config.system.sentry.dsn);
+      sentryInitialized = true;
+    }
 
     config.storylines = await storylineLoader(cfgLoader, 'config/storylines', config.storylines)
       .catch((err) => {
