@@ -222,6 +222,20 @@ In at least one of the stages, there should be a node that sets the `quest.<ques
 which indicates that the quest is complete. This flag can be set by a node, or by a response within
 a node.
 
+#### Progressive prompts
+
+It's possible to provide an array of prompts instead of a single prompt. In this case, the
+game engine will cycle to the next prompt after a certain amount of time has passed, or the 
+player has spoken to a certain number of NPCs.
+
+These progressive prompts are objects with the following properties:
+
+- **text**: (text) The prompt text that is shown to the player.
+- **target**: (npc, optional) An NPC that will be marked with an arrow. Use them when you want
+  to guide the player to a specific NPC only after a certain amount of time has passed.
+
+If the stage already had a target, the target in the prompt will override it.
+
 #### Counters
 
 Counters are used to track the progress of a stage. They are specified through these properties:

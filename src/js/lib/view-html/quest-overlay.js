@@ -10,6 +10,8 @@ class QuestOverlay {
 
     this.panel = new QuestOverlayPanel(config, lang);
     this.$element = this.panel.$element;
+    this.currentPromptOptions = null;
+    this.currentCount = null;
   }
 
   setLang(lang) {
@@ -22,53 +24,69 @@ class QuestOverlay {
     this.panel.hide();
   }
 
-  setCounter(count) {
-    this.uiQueue.add(() => {
-      this.panel.setCounter(count);
-    }, 1000);
-  }
+  showPrompt(options) {
+    if (this.currentPromptOptions?.text === options?.text) {
+      return;
+    }
+    this.currentPromptOptions = options;
+    const {
+      text,
+      counter,
+      keepCount,
+      initialCount,
+      withCheckmark,
+    } = { ...QuestOverlay.defaultPromptOptions, ...options };
 
-  showDefaultPrompt() {
-    this.show(this.config?.i18n?.ui?.defaultPrompt || '');
-  }
-
-  showActiveQuestPrompt(prompt, counter = null) {
-    this.show(prompt, counter, true);
-  }
-
-  show(promptText, counter = null, withCheckmark = false) {
     this.uiQueue.add(() => {
       this.panel.hide();
     }, () => (this.panel.isVisible() ? 500 : 0));
 
-    if (promptText) {
+    this.currentCount = (keepCount && this.currentCount) ? this.currentCount : initialCount;
+    if (text) {
       this.uiQueue.add(() => {
         this.panel.reset();
-        this.panel.setText(promptText);
+        this.panel.setText(text);
 
         if (withCheckmark) {
           this.panel.showCheckmark();
         }
         if (counter) {
           this.panel.createCounter(counter);
+          this.panel.setCounter(this.currentCount);
         }
         this.panel.show();
       }, 500);
     }
   }
 
-  markStageAsDone() {
+  updatePrompt(changedOptions) {
+    const options = { ...this.currentPromptOptions, keepCount: true, ...changedOptions };
+    this.showPrompt(options);
+  }
+
+  setCounter(count) {
+    this.currentCount = count;
     this.uiQueue.add(() => {
-      this.panel.checkCheckmark();
+      this.panel.setCounter(count);
     }, 1000);
   }
 
-  markQuestAsDone() {
-    this.uiQueue.addPause(500);
+  markDone(duration = 1000, initialDelay = 0) {
+    if (initialDelay) {
+      this.uiQueue.addPause(initialDelay);
+    }
     this.uiQueue.add(() => {
       this.panel.checkCheckmark();
-    }, 1500);
+    }, duration);
   }
 }
+
+QuestOverlay.defaultPromptOptions = {
+  text: '',
+  counter: null,
+  withCheckmark: false,
+  keepCount: false,
+  initialCount: 0,
+};
 
 module.exports = QuestOverlay;

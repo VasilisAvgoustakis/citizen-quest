@@ -175,7 +175,10 @@
           "$ref": "#/definitions/condition"
         },
         "prompt": {
-          "$ref": "#/definitions/text"
+          "oneOf": [
+            { "$ref": "#/definitions/text" },
+            { "$ref": "#/definitions/progressivePromptList" }
+          ]
         },
         "dialogues": {
           "$ref": "#/definitions/indexedDialogues"
@@ -221,6 +224,26 @@
       },
       "additionalProperties": false,
       "required": ["expression", "max"]
+    },
+    "progressivePromptList": {
+      "type": "array",
+      "items": {
+          "$ref": "#/definitions/progressivePrompt"
+      },
+      "minItems": 1
+    },
+    "progressivePrompt": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "target": {
+          "$ref": "#/definitions/objectID"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["text"]
     },
     "ending": {
       "type": "object",
@@ -272,7 +295,6 @@
       ],
       "errorMessage": "must be a string or an object with language code keys and string values."
     },
-
     "condition": {
       "type": "string",
       "minLength": 1,

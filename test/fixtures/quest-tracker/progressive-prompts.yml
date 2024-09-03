@@ -1,0 +1,55 @@
+decision: "Who is the chocolate burglar?"
+prompt: "Help find the chocolate burglar."
+npcs:
+  mayor:
+    name: Mayor
+    spawn: { x: 0, y: 0 }
+    dialogue:
+      - text: "Stealing chocolate is not acceptable."
+  boy:
+    name: Little boy
+    spawn: { x: 100, y: 100 }
+    dialogue:
+      - text: "Someone took my chocolate."
+  chocolateBurglar:
+    name: Chocolate burglar
+    spawn: { x: 500, y: 500 }
+    dialogue:
+      - text: "I'm the chocolate burglar."
+quests:
+  catchTheBurglar:
+    npc: mayor
+    mood: chocolate
+    available:
+      dialogue:
+        - text: "I heard there was a crime! Find the victim."
+          set: ['quest.catchTheBurglar.active']
+    stages:
+      - cond: foundBurglar
+        prompt: "Return to the mayor."
+        dialogue:
+          mayor:
+            - text: "Thank you for finding the burglar."
+              set: ['quest.catchTheBurglar.done']
+      - cond: talkedToVictim
+        prompt:
+          - text: "Find the chocolate burglar."
+          - text: "See anyone suspicious hidden in a corner?"
+          - text: "The burglar hides in the lower right corner."
+            target: chocolateBurglar
+        dialogue:
+          mayor:
+            - text: "I'm not the burglar!"
+          boy:
+            - text: "Find the burglar please!"
+          chocolateBurglar:
+            - text: "Oh, no! You caught me!"
+              set: ['foundBurglar']
+      - prompt:
+          - text: "Find the victim of the burglary."
+          - text: "Talk to the boy."
+            target: boy
+        dialogue:
+          boy:
+            - text: "Someone took my chocolate!"
+              set: ['talkedToVictim']

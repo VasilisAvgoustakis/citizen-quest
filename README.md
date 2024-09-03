@@ -80,6 +80,8 @@ The following keyboard shortcuts are available in the player app if the `game.us
 configuration key is not set to `false`:
 
 - 'e': Ends the countdown and jumps to the game end.
+- 't': (Tip) Increases the "hint level", giving a more explicit quest prompt 
+    (if progressive prompts are used in the particular quest stage).
 
 All the previous ones, plus the following keyboard shortcuts are available in the player app if the 
 `game.devModeShortcuts` configuration key is not set to `false`:

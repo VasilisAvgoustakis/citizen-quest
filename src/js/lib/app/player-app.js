@@ -20,6 +20,7 @@ const Scenery = require('../model/scenery');
 const DialogueIteratorContext = require('../model/dialogues/dialogue-iterator-context');
 const DialogueEffectFactory = require('../model/dialogues/effects/dialogue-effect-factory');
 require('../model/dialogues/effects/dialogue-effect-init');
+const HintManager = require('../model/hint-manager');
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -36,6 +37,7 @@ class PlayerApp {
 
     this.questTracker = new QuestTracker(config, this.flags);
     this.roundTimer = new RoundTimer(config.game.duration);
+    this.hintManager = new HintManager(config);
 
     this.pc = null;
     this.canControlPc = false;
@@ -64,7 +66,9 @@ class PlayerApp {
         return;
       }
       this.seenFlags[flagId] = true;
-
+      // Reset the hint manager when a new flag is set, since setting flags
+      // typically indicates progress
+      this.hintManager.reset();
       if (flagId.startsWith('pnt.') && setter !== 'remote') {
         const flagParts = flagId.split('.');
         const type = flagParts[1];
@@ -135,35 +139,50 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('questActive', () => {
+      this.hintManager.reset();
       this.updateScenery();
       this.updateNpcs();
       this.updateNpcMoods();
     });
+
     this.questTracker.events.on('questDone', () => {
+      this.hintManager.reset();
       this.updateScenery();
       this.updateNpcs();
       this.updateNpcMoods();
-      this.playerOverlayMgr.questOverlay.markQuestAsDone();
+      this.playerOverlayMgr.markQuestDone();
     });
+
     this.questTracker.events.on('stageChanged', (questId, stage, oldStage) => {
       if (oldStage !== null) {
-        this.playerOverlayMgr.questOverlay.markStageAsDone();
+        this.playerOverlayMgr.markStageDone();
       }
-      const activeStage = this.questTracker.getActiveStage();
-      this.playerOverlayMgr.questOverlay.showActiveQuestPrompt(
-        activeStage?.prompt,
-        activeStage?.counter
+      this.hintManager.reset();
+      this.playerOverlayMgr.showQuestPrompt(
+        this.questTracker.getActiveStagePrompt(),
+        this.questTracker.getActiveStageCounter()
       );
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStage()?.target);
+      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
     });
 
     this.questTracker.events.on('stageCountChanged', (questId, count) => {
-      this.playerOverlayMgr.questOverlay.setCounter(count);
+      this.playerOverlayMgr.setQuestStageCounter(count);
     });
 
     this.questTracker.events.on('noQuest', () => {
-      this.playerOverlayMgr.questOverlay.showDefaultPrompt();
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStage()?.target);
+      this.playerOverlayMgr.showDefaultPrompt();
+      this.gameView.updateTargetArrow(null);
+    });
+
+    this.questTracker.events.on('hintLevelChanged', () => {
+      this.playerOverlayMgr.changeQuestPromptText(
+        this.questTracker.getActiveStagePrompt()
+      );
+      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+    });
+
+    this.hintManager.events.on('hintNeeded', () => {
+      this.questTracker.incHintLevel();
     });
 
     this.roundTimer.events.on('update', (timeLeft) => {
@@ -186,6 +205,10 @@ class PlayerApp {
       || this.config.game.userModeShortcuts !== false) {
       keyboardInputMgr.addToggle('KeyE', () => {
         this.gameServerController.roundEnd();
+      });
+
+      keyboardInputMgr.addToggle('KeyT', () => {
+        this.questTracker.incHintLevel();
       });
     }
     if (this.config.game.devModeShortcuts !== false) {
@@ -318,11 +341,19 @@ class PlayerApp {
       this.dialogueSequencer
     );
     const title = npc ? npc.name : null;
+    let hintManagerReset = false;
+    this.hintManager.events.once('reset', () => {
+      hintManagerReset = true;
+    });
     this.dialogueSequencer.play(dialogue, this.getDialogueContext(), { top: title });
     this.dialogueSequencer.events.once('end', () => {
       this.inputRouter.routeToPcMovement(this);
       this.gameView.cameraUsePreset('walking');
       this.gameView.showDistractions();
+      if (!hintManagerReset) {
+        // We only count the dialogues in which the hint manager was not reset
+        this.hintManager.handleDialogue(npc.id);
+      }
     });
   }
 

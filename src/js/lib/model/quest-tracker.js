@@ -48,6 +48,12 @@ const safeBuildDialogueFromItems = require('./dialogues/dialogue-safe-builder');
  * @event QuestTracker#noQuest
  */
 
+/**
+ * Hit level changed event. Fired when the hint level changes.
+ *
+ * @event QuestTracker#hintLevelChanged
+ */
+
 class QuestTracker {
   constructor(config, flags) {
     this.config = config;
@@ -58,6 +64,7 @@ class QuestTracker {
     this.activeQuestId = null;
     this.activeStage = null;
     this.activeCounter = null;
+    this.resetHintLevel();
 
     this.logicParser = new LogicParser({ flags });
     this.flags.events.on('flag', this.handleFlagChange.bind(this));
@@ -71,6 +78,7 @@ class QuestTracker {
     this.activeQuestId = null;
     this.activeStage = null;
     this.activeCounter = null;
+    this.resetHintLevel();
     this.initFlags();
   }
 
@@ -145,6 +153,71 @@ class QuestTracker {
     return this.getActiveQuest()?.stages?.[this.activeStage] || null;
   }
 
+  getHintLevel() {
+    return this.hintLevel;
+  }
+
+  setHintLevel(level, withEvent = true) {
+    this.hintLevel = level;
+    if (withEvent) {
+      this.events.emit('hintLevelChanged', this.hintLevel);
+    }
+  }
+
+  incHintLevel() {
+    this.setHintLevel(this.getHintLevel() + 1);
+  }
+
+  resetHintLevel() {
+    this.setHintLevel(0, false);
+  }
+
+  currentPromptIsProgressive() {
+    const prompt = this.getActiveStage()?.prompt;
+    return Array.isArray(prompt) && prompt.length > 0 && prompt[0].text !== undefined;
+  }
+
+  getActiveProgressivePrompt() {
+    if (!this.currentPromptIsProgressive()) {
+      throw new Error('Progressive prompt list expected');
+    }
+    const prompt = this.getActiveStage()?.prompt || null;
+    return prompt[Math.min(this.getHintLevel(), prompt.length - 1)];
+  }
+
+  /**
+   * Get the prompt for the active stage.
+   *
+   * @return {object|string|null}
+   */
+  getActiveStagePrompt() {
+    if (this.currentPromptIsProgressive()) {
+      return this.getActiveProgressivePrompt().text;
+    }
+    return this.getActiveStage()?.prompt || null;
+  }
+
+  /**
+   * Get the target for the active stage.
+   *
+   * @return {string|null}
+   */
+  getActiveStageTarget() {
+    if (this.currentPromptIsProgressive()) {
+      return this.getActiveProgressivePrompt().target || null;
+    }
+    return this.getActiveStage()?.target || null;
+  }
+
+  /**
+   * Get the counter for the active stage.
+   *
+   * @return {object|null}
+   */
+  getActiveStageCounter() {
+    return this.getActiveStage()?.counter || null;
+  }
+
   /**
    * Set the active quest.
    *
@@ -159,6 +232,7 @@ class QuestTracker {
       this.activeQuestId = questId;
       this.activeStage = null;
       this.activeCounter = null;
+      this.resetHintLevel();
       if (questId) {
         this.events.emit('questActive', questId);
       } else {
@@ -418,6 +492,7 @@ class QuestTracker {
     const oldStage = this.activeStage;
     this.activeStage = stage;
     this.activeCounter = null;
+    this.resetHintLevel();
     this.events.emit('stageChanged', this.activeQuestId, stage, oldStage);
     this.updateCounter();
   }

@@ -44622,6 +44622,7 @@ const Scenery = __webpack_require__(/*! ../model/scenery */ "./src/js/lib/model/
 const DialogueIteratorContext = __webpack_require__(/*! ../model/dialogues/dialogue-iterator-context */ "./src/js/lib/model/dialogues/dialogue-iterator-context.js");
 const DialogueEffectFactory = __webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-factory */ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js");
 __webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-init */ "./src/js/lib/model/dialogues/effects/dialogue-effect-init.js");
+const HintManager = __webpack_require__(/*! ../model/hint-manager */ "./src/js/lib/model/hint-manager.js");
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -44638,6 +44639,7 @@ class PlayerApp {
 
     this.questTracker = new QuestTracker(config, this.flags);
     this.roundTimer = new RoundTimer(config.game.duration);
+    this.hintManager = new HintManager(config);
 
     this.pc = null;
     this.canControlPc = false;
@@ -44666,7 +44668,9 @@ class PlayerApp {
         return;
       }
       this.seenFlags[flagId] = true;
-
+      // Reset the hint manager when a new flag is set, since setting flags
+      // typically indicates progress
+      this.hintManager.reset();
       if (flagId.startsWith('pnt.') && setter !== 'remote') {
         const flagParts = flagId.split('.');
         const type = flagParts[1];
@@ -44737,35 +44741,50 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('questActive', () => {
+      this.hintManager.reset();
       this.updateScenery();
       this.updateNpcs();
       this.updateNpcMoods();
     });
+
     this.questTracker.events.on('questDone', () => {
+      this.hintManager.reset();
       this.updateScenery();
       this.updateNpcs();
       this.updateNpcMoods();
-      this.playerOverlayMgr.questOverlay.markQuestAsDone();
+      this.playerOverlayMgr.markQuestDone();
     });
+
     this.questTracker.events.on('stageChanged', (questId, stage, oldStage) => {
       if (oldStage !== null) {
-        this.playerOverlayMgr.questOverlay.markStageAsDone();
+        this.playerOverlayMgr.markStageDone();
       }
-      const activeStage = this.questTracker.getActiveStage();
-      this.playerOverlayMgr.questOverlay.showActiveQuestPrompt(
-        activeStage?.prompt,
-        activeStage?.counter
+      this.hintManager.reset();
+      this.playerOverlayMgr.showQuestPrompt(
+        this.questTracker.getActiveStagePrompt(),
+        this.questTracker.getActiveStageCounter()
       );
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStage()?.target);
+      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
     });
 
     this.questTracker.events.on('stageCountChanged', (questId, count) => {
-      this.playerOverlayMgr.questOverlay.setCounter(count);
+      this.playerOverlayMgr.setQuestStageCounter(count);
     });
 
     this.questTracker.events.on('noQuest', () => {
-      this.playerOverlayMgr.questOverlay.showDefaultPrompt();
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStage()?.target);
+      this.playerOverlayMgr.showDefaultPrompt();
+      this.gameView.updateTargetArrow(null);
+    });
+
+    this.questTracker.events.on('hintLevelChanged', () => {
+      this.playerOverlayMgr.changeQuestPromptText(
+        this.questTracker.getActiveStagePrompt()
+      );
+      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+    });
+
+    this.hintManager.events.on('hintNeeded', () => {
+      this.questTracker.incHintLevel();
     });
 
     this.roundTimer.events.on('update', (timeLeft) => {
@@ -44788,6 +44807,10 @@ class PlayerApp {
       || this.config.game.userModeShortcuts !== false) {
       keyboardInputMgr.addToggle('KeyE', () => {
         this.gameServerController.roundEnd();
+      });
+
+      keyboardInputMgr.addToggle('KeyT', () => {
+        this.questTracker.incHintLevel();
       });
     }
     if (this.config.game.devModeShortcuts !== false) {
@@ -44920,11 +44943,19 @@ class PlayerApp {
       this.dialogueSequencer
     );
     const title = npc ? npc.name : null;
+    let hintManagerReset = false;
+    this.hintManager.events.once('reset', () => {
+      hintManagerReset = true;
+    });
     this.dialogueSequencer.play(dialogue, this.getDialogueContext(), { top: title });
     this.dialogueSequencer.events.once('end', () => {
       this.inputRouter.routeToPcMovement(this);
       this.gameView.cameraUsePreset('walking');
       this.gameView.showDistractions();
+      if (!hintManagerReset) {
+        // We only count the dialogues in which the hint manager was not reset
+        this.hintManager.handleDialogue(npc.id);
+      }
     });
   }
 
@@ -48377,6 +48408,51 @@ module.exports = FlagStore;
 
 /***/ }),
 
+/***/ "./src/js/lib/model/hint-manager.js":
+/*!******************************************!*\
+  !*** ./src/js/lib/model/hint-manager.js ***!
+  \******************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const EventEmitter = __webpack_require__(/*! events */ "./node_modules/events/events.js");
+
+class HintManager {
+  constructor(config) {
+    this.config = config;
+    this.events = new EventEmitter();
+
+    this.hintDialogueThreshold = this.config?.game?.hintDialogueThreshold || 3;
+
+    this.dialogueCounter = new Set();
+  }
+
+  handleDialogue(npcId) {
+    // If the threshold is 0, the dialogue counter is disabled
+    if (this.hintDialogueThreshold === 0) {
+      return;
+    }
+
+    this.dialogueCounter.add(npcId);
+    console.log("HintManager++");
+    if (this.dialogueCounter.size >= this.hintDialogueThreshold) {
+      console.log("HintManager signaling hint needed");
+      this.events.emit('hintNeeded');
+      this.reset();
+    }
+  }
+
+  reset() {
+    console.log("HintManager *reset*");
+    this.events.emit('reset');
+    this.dialogueCounter.clear();
+  }
+}
+
+module.exports = HintManager;
+
+
+/***/ }),
+
 /***/ "./src/js/lib/model/quest-tracker.js":
 /*!*******************************************!*\
   !*** ./src/js/lib/model/quest-tracker.js ***!
@@ -48433,6 +48509,12 @@ const safeBuildDialogueFromItems = __webpack_require__(/*! ./dialogues/dialogue-
  * @event QuestTracker#noQuest
  */
 
+/**
+ * Hit level changed event. Fired when the hint level changes.
+ *
+ * @event QuestTracker#hintLevelChanged
+ */
+
 class QuestTracker {
   constructor(config, flags) {
     this.config = config;
@@ -48443,6 +48525,7 @@ class QuestTracker {
     this.activeQuestId = null;
     this.activeStage = null;
     this.activeCounter = null;
+    this.resetHintLevel();
 
     this.logicParser = new LogicParser({ flags });
     this.flags.events.on('flag', this.handleFlagChange.bind(this));
@@ -48456,6 +48539,7 @@ class QuestTracker {
     this.activeQuestId = null;
     this.activeStage = null;
     this.activeCounter = null;
+    this.resetHintLevel();
     this.initFlags();
   }
 
@@ -48530,6 +48614,71 @@ class QuestTracker {
     return this.getActiveQuest()?.stages?.[this.activeStage] || null;
   }
 
+  getHintLevel() {
+    return this.hintLevel;
+  }
+
+  setHintLevel(level, withEvent = true) {
+    this.hintLevel = level;
+    if (withEvent) {
+      this.events.emit('hintLevelChanged', this.hintLevel);
+    }
+  }
+
+  incHintLevel() {
+    this.setHintLevel(this.getHintLevel() + 1);
+  }
+
+  resetHintLevel() {
+    this.setHintLevel(0, false);
+  }
+
+  currentPromptIsProgressive() {
+    const prompt = this.getActiveStage()?.prompt;
+    return Array.isArray(prompt) && prompt.length > 0 && prompt[0].text !== undefined;
+  }
+
+  getActiveProgressivePrompt() {
+    if (!this.currentPromptIsProgressive()) {
+      throw new Error('Progressive prompt list expected');
+    }
+    const prompt = this.getActiveStage()?.prompt || null;
+    return prompt[Math.min(this.getHintLevel(), prompt.length - 1)];
+  }
+
+  /**
+   * Get the prompt for the active stage.
+   *
+   * @return {object|string|null}
+   */
+  getActiveStagePrompt() {
+    if (this.currentPromptIsProgressive()) {
+      return this.getActiveProgressivePrompt().text;
+    }
+    return this.getActiveStage()?.prompt || null;
+  }
+
+  /**
+   * Get the target for the active stage.
+   *
+   * @return {string|null}
+   */
+  getActiveStageTarget() {
+    if (this.currentPromptIsProgressive()) {
+      return this.getActiveProgressivePrompt().target || null;
+    }
+    return this.getActiveStage()?.target || null;
+  }
+
+  /**
+   * Get the counter for the active stage.
+   *
+   * @return {object|null}
+   */
+  getActiveStageCounter() {
+    return this.getActiveStage()?.counter || null;
+  }
+
   /**
    * Set the active quest.
    *
@@ -48544,6 +48693,7 @@ class QuestTracker {
       this.activeQuestId = questId;
       this.activeStage = null;
       this.activeCounter = null;
+      this.resetHintLevel();
       if (questId) {
         this.events.emit('questActive', questId);
       } else {
@@ -48803,6 +48953,7 @@ class QuestTracker {
     const oldStage = this.activeStage;
     this.activeStage = stage;
     this.activeCounter = null;
+    this.resetHintLevel();
     this.events.emit('stageChanged', this.activeQuestId, stage, oldStage);
     this.updateCounter();
   }
@@ -49958,7 +50109,31 @@ class PlayerOverlayManager {
   }
 
   showDefaultPrompt() {
-    this.questOverlay.showDefaultPrompt();
+    this.questOverlay.showPrompt({ text: this.config?.i18n?.ui?.defaultPrompt || '' });
+  }
+
+  showQuestPrompt(promptText, counter = null) {
+    this.questOverlay.showPrompt({
+      text: promptText,
+      counter,
+      withCheckmark: true,
+    });
+  }
+
+  changeQuestPromptText(promptText) {
+    this.questOverlay.updatePrompt({ text: promptText });
+  }
+
+  setQuestStageCounter(count) {
+    this.questOverlay.setCounter(count);
+  }
+
+  markStageDone() {
+    this.questOverlay.markDone();
+  }
+
+  markQuestDone() {
+    this.questOverlay.markDone(1500, 500);
   }
 
   showEndingScreen(endingText, classes, inclusionTypes) {
@@ -50107,6 +50282,8 @@ class QuestOverlay {
 
     this.panel = new QuestOverlayPanel(config, lang);
     this.$element = this.panel.$element;
+    this.currentPromptOptions = null;
+    this.currentCount = null;
   }
 
   setLang(lang) {
@@ -50119,54 +50296,70 @@ class QuestOverlay {
     this.panel.hide();
   }
 
-  setCounter(count) {
-    this.uiQueue.add(() => {
-      this.panel.setCounter(count);
-    }, 1000);
-  }
+  showPrompt(options) {
+    if (this.currentPromptOptions?.text === options?.text) {
+      return;
+    }
+    this.currentPromptOptions = options;
+    const {
+      text,
+      counter,
+      keepCount,
+      initialCount,
+      withCheckmark,
+    } = { ...QuestOverlay.defaultPromptOptions, ...options };
 
-  showDefaultPrompt() {
-    this.show(this.config?.i18n?.ui?.defaultPrompt || '');
-  }
-
-  showActiveQuestPrompt(prompt, counter = null) {
-    this.show(prompt, counter, true);
-  }
-
-  show(promptText, counter = null, withCheckmark = false) {
     this.uiQueue.add(() => {
       this.panel.hide();
     }, () => (this.panel.isVisible() ? 500 : 0));
 
-    if (promptText) {
+    this.currentCount = (keepCount && this.currentCount) ? this.currentCount : initialCount;
+    if (text) {
       this.uiQueue.add(() => {
         this.panel.reset();
-        this.panel.setText(promptText);
+        this.panel.setText(text);
 
         if (withCheckmark) {
           this.panel.showCheckmark();
         }
         if (counter) {
           this.panel.createCounter(counter);
+          this.panel.setCounter(this.currentCount);
         }
         this.panel.show();
       }, 500);
     }
   }
 
-  markStageAsDone() {
+  updatePrompt(changedOptions) {
+    const options = { ...this.currentPromptOptions, keepCount: true, ...changedOptions };
+    this.showPrompt(options);
+  }
+
+  setCounter(count) {
+    this.currentCount = count;
     this.uiQueue.add(() => {
-      this.panel.checkCheckmark();
+      this.panel.setCounter(count);
     }, 1000);
   }
 
-  markQuestAsDone() {
-    this.uiQueue.addPause(500);
+  markDone(duration = 1000, initialDelay = 0) {
+    if (initialDelay) {
+      this.uiQueue.addPause(initialDelay);
+    }
     this.uiQueue.add(() => {
       this.panel.checkCheckmark();
-    }, 1500);
+    }, duration);
   }
 }
+
+QuestOverlay.defaultPromptOptions = {
+  text: '',
+  counter: null,
+  withCheckmark: false,
+  keepCount: false,
+  initialCount: 0,
+};
 
 module.exports = QuestOverlay;
 
@@ -51207,6 +51400,7 @@ class GameView {
     this.pcView = null;
     this.guideArrow = null;
     this.targetArrow = null;
+    this.targetArrowTarget = null;
     this.showHitbox = false;
   }
 
@@ -51374,10 +51568,14 @@ class GameView {
   }
 
   updateTargetArrow(target) {
+    if (this.targetArrowTarget === target) {
+      return;
+    }
     if (this.targetArrow !== null) {
       this.targetArrow.destroy();
       this.targetArrow = null;
     }
+    this.targetArrowTarget = target;
     if (target) {
       const targetNpc = this.getNpcView(target);
       if (targetNpc) {
@@ -52174,7 +52372,7 @@ module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"scenery":{"$ref":"#/definitions/scenery"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"},"actAs":{"$ref":"#/definitions/roles"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"anyOf":[{"required":["name","spawn","dialogue"]},{"required":["name","spawn","actAs"]}],"errorMessage":{"anyOf":"must have name, spawn, and at least one of dialogue or actAs properties."}},"scenery":{"type":"object","additionalProperties":{"$ref":"#/definitions/sceneryObject"}},"sceneryObject":{"type":"object","properties":{"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"layer":{"type":"string","enum":["back","main","front"]},"zIndex":{"type":"integer"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"required":["spawn"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"$ref":"#/definitions/text"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]},"set":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."}},"additionalProperties":false,"required":["expression","max"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"roles":{"oneOf":[{"$ref":"#/definitions/roleID"},{"type":"array","items":{"$ref":"#/definitions/roleID"}}],"errorMessage":"must be a role ID or an array of role IDs."},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"roleID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^_[a-zA-Z_][a-zA-Z0-9_]*$"},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
+module.exports = JSON.parse('{"$id":"https://github.com/IMAGINARY/citizen-quest/specs/storyline.schema.json","$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"decision":{"$ref":"#/definitions/text"},"prompt":{"$ref":"#/definitions/text"},"npcs":{"$ref":"#/definitions/npcs"},"scenery":{"$ref":"#/definitions/scenery"},"initFlags":{"$ref":"#/definitions/initFlags"},"quests":{"$ref":"#/definitions/quests"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"ending":{"$ref":"#/definitions/ending"}},"additionalProperties":false,"required":["decision","prompt","npcs","quests","ending"],"definitions":{"initFlags":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."},"npcs":{"type":"object","additionalProperties":{"$ref":"#/definitions/npc"}},"npc":{"type":"object","properties":{"name":{"$ref":"#/definitions/text"},"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"dialogue":{"$ref":"#/definitions/dialogue"},"actAs":{"$ref":"#/definitions/roles"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"anyOf":[{"required":["name","spawn","dialogue"]},{"required":["name","spawn","actAs"]}],"errorMessage":{"anyOf":"must have name, spawn, and at least one of dialogue or actAs properties."}},"scenery":{"type":"object","additionalProperties":{"$ref":"#/definitions/sceneryObject"}},"sceneryObject":{"type":"object","properties":{"type":{"type":"string"},"spawn":{"$ref":"#/definitions/point"},"layer":{"type":"string","enum":["back","main","front"]},"zIndex":{"type":"integer"},"cond":{"$ref":"#/definitions/condition"}},"additionalProperties":false,"required":["spawn"]},"quests":{"type":"object","additionalProperties":{"$ref":"#/definitions/quest"}},"quest":{"type":"object","properties":{"npc":{"$ref":"#/definitions/objectID"},"mood":{"$ref":"#/definitions/objectID"},"required":{"$ref":"#/definitions/questRequirements"},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"available":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}}},"stages":{"type":"array","items":{"$ref":"#/definitions/questStage"}}},"additionalProperties":false,"required":["npc","mood","stages","available"]},"questRequirements":{"oneOf":[{"$ref":"#/definitions/objectID"},{"type":"array","items":{"$ref":"#/definitions/objectID"}}],"errorMessage":"must be a quest ID or an array of quest IDs."},"questStage":{"type":"object","properties":{"cond":{"$ref":"#/definitions/condition"},"prompt":{"oneOf":[{"$ref":"#/definitions/text"},{"$ref":"#/definitions/progressivePromptList"}]},"dialogues":{"$ref":"#/definitions/indexedDialogues"},"counter":{"$ref":"#/definitions/questStageCounter"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["dialogues"]},"questStageCounter":{"type":"object","properties":{"expression":{"$ref":"#/definitions/expression"},"max":{"type":"integer","minimum":0},"icon":{"type":"string","enum":["happy","angry","idea","person"]},"set":{"oneOf":[{"$ref":"#/definitions/flagId"},{"type":"array","items":{"$ref":"#/definitions/flagId"}}],"errorMessage":"must be a flag or an array of flags."}},"additionalProperties":false,"required":["expression","max"]},"progressivePromptList":{"type":"array","items":{"$ref":"#/definitions/progressivePrompt"},"minItems":1},"progressivePrompt":{"type":"object","properties":{"text":{"$ref":"#/definitions/text"},"target":{"$ref":"#/definitions/objectID"}},"additionalProperties":false,"required":["text"]},"ending":{"type":"object","properties":{"dialogue":{"$ref":"#/definitions/dialogue"}},"additionalProperties":false,"required":["dialogue"]},"indexedDialogues":{"type":"object","additionalProperties":{"$ref":"#/definitions/dialogue"}},"dialogue":{"$ref":"dialogue.schema.json#/definitions/nodeList"},"flagId":{"$ref":"dialogue.schema.json#/definitions/flag_id"},"roles":{"oneOf":[{"$ref":"#/definitions/roleID"},{"type":"array","items":{"$ref":"#/definitions/roleID"}}],"errorMessage":"must be a role ID or an array of role IDs."},"text":{"oneOf":[{"type":"string","minLength":1,"maxLength":1000},{"type":"object","additionalProperties":{"type":"string"}}],"errorMessage":"must be a string or an object with language code keys and string values."},"condition":{"type":"string","minLength":1,"maxLength":1000},"expression":{"type":"string","minLength":1,"maxLength":1000},"roleID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^_[a-zA-Z_][a-zA-Z0-9_]*$"},"objectID":{"type":"string","minLength":1,"maxLength":100,"pattern":"^[a-zA-Z][a-zA-Z0-9_]*$"},"point":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"}},"additionalProperties":false,"required":["x","y"],"errorMessage":"must be an object with x and y properties."}}}');
 
 /***/ }),
 
@@ -52396,4 +52594,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.8e5d678d458de7853849.js.map
+//# sourceMappingURL=default.866fd00261affce3d4ff.js.map

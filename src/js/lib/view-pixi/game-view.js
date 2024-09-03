@@ -27,6 +27,7 @@ class GameView {
     this.pcView = null;
     this.guideArrow = null;
     this.targetArrow = null;
+    this.targetArrowTarget = null;
     this.showHitbox = false;
   }
 
@@ -194,10 +195,14 @@ class GameView {
   }
 
   updateTargetArrow(target) {
+    if (this.targetArrowTarget === target) {
+      return;
+    }
     if (this.targetArrow !== null) {
       this.targetArrow.destroy();
       this.targetArrow = null;
     }
+    this.targetArrowTarget = target;
     if (target) {
       const targetNpc = this.getNpcView(target);
       if (targetNpc) {

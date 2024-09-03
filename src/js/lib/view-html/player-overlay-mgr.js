@@ -139,7 +139,31 @@ class PlayerOverlayManager {
   }
 
   showDefaultPrompt() {
-    this.questOverlay.showDefaultPrompt();
+    this.questOverlay.showPrompt({ text: this.config?.i18n?.ui?.defaultPrompt || '' });
+  }
+
+  showQuestPrompt(promptText, counter = null) {
+    this.questOverlay.showPrompt({
+      text: promptText,
+      counter,
+      withCheckmark: true,
+    });
+  }
+
+  changeQuestPromptText(promptText) {
+    this.questOverlay.updatePrompt({ text: promptText });
+  }
+
+  setQuestStageCounter(count) {
+    this.questOverlay.setCounter(count);
+  }
+
+  markStageDone() {
+    this.questOverlay.markDone();
+  }
+
+  markQuestDone() {
+    this.questOverlay.markDone(1500, 500);
   }
 
   showEndingScreen(endingText, classes, inclusionTypes) {
