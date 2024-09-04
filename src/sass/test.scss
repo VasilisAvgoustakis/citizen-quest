@@ -1,0 +1,24 @@
+body {
+  background-color: #bcbcbc;
+}
+
+.station  {
+  overflow: hidden;
+  max-width: 100%;
+
+  iframe {
+    border: none;
+  }
+
+  &.error {
+    outline: 5px solid red;
+  }
+}
+
+.station-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  a {
+    text-decoration: underline;
+  }
+}

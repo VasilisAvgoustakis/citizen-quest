@@ -48433,16 +48433,13 @@ class HintManager {
     }
 
     this.dialogueCounter.add(npcId);
-    console.log("HintManager++");
     if (this.dialogueCounter.size >= this.hintDialogueThreshold) {
-      console.log("HintManager signaling hint needed");
       this.events.emit('hintNeeded');
       this.reset();
     }
   }
 
   reset() {
-    console.log("HintManager *reset*");
     this.events.emit('reset');
     this.dialogueCounter.clear();
   }
@@ -52594,4 +52591,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.866fd00261affce3d4ff.js.map
+//# sourceMappingURL=default.d985046f1195e0a4c951.js.map

@@ -1,0 +1,27 @@
+/*!*********************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[0].use[2]!./src/sass/test.scss ***!
+  \*********************************************************************************************************************************************************************/
+body {
+  background-color: #bcbcbc;
+}
+
+.station {
+  overflow: hidden;
+  max-width: 100%;
+}
+.station iframe {
+  border: none;
+}
+.station.error {
+  outline: 5px solid red;
+}
+
+.station-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.station-name a {
+  text-decoration: underline;
+}
+
+/*# sourceMappingURL=test.02656e0a1c19c8bd1612.css.map*/

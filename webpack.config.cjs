@@ -10,6 +10,7 @@ module.exports = {
     default: './src/js/main.js',
     player: './src/js/player.js',
     map: './src/js/map.js',
+    test: './src/js/test.js',
     charEdit: './src/js/char-edit.js',
   },
   output: {
@@ -83,6 +84,17 @@ module.exports = {
       title: `Map | ${appConfig.title}`,
       meta: {
         title: `Map | ${appConfig.title}`,
+        description: appConfig.description,
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, 'src/html/test.html'),
+      filename: path.resolve(__dirname, 'test.html'),
+      chunks: ['test'],
+      minify: true,
+      title: `Test | ${appConfig.title}`,
+      meta: {
+        title: `Test | ${appConfig.title}`,
         description: appConfig.description,
       }
     }),
