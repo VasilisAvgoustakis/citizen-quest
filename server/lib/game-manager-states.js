@@ -1,7 +1,7 @@
 /**
  * Game states.
  *
- * See `doc/game-states.md` for a description of the game states.
+ * See `doc/dev/game-states.md` for a description of the game states.
  *
  * @type {{INTRO: string, IDLE: string, PLAYING: string, ENDING: string}}
  */
