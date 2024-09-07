@@ -54,6 +54,10 @@ class FlagStore {
       Object.entries(this.flags).sort((a, b) => a[0].localeCompare(b[0]))
     ), null, 2);
   }
+
+  asJSON() {
+    return this.flags;
+  }
 }
 
 FlagStore.MIN_VALUE = 0;

@@ -5,15 +5,15 @@ const cors = require('cors');
 const OpenApiValidator = require('express-openapi-validator');
 const reportError = require('./errors');
 const GameManager = require('./game-manager');
-const GameManagerStates = require('./game-manager-states');
+const GameManagerStates = require('./game-manager-states/states');
 
 function initApp(config) {
   const serverID = `${process.pid}:${Date.now()}`;
   console.log(`Initializing server (id=${serverID})`);
 
   const gameManager = new GameManager(config);
-  gameManager.events.on('roundStarted', (round, storyline) => {
-    console.log(`Round ${round} started (${storyline})`);
+  gameManager.events.on('roundCreated', (round, storyline) => {
+    console.log(`Round ${round} created (${storyline})`);
   });
   gameManager.init();
 
@@ -33,34 +33,35 @@ function initApp(config) {
   });
 
   function processSync(message) {
-    if (message.round !== gameManager.round) {
+    // Ignore sync messages from previous rounds
+    if (message.round !== gameManager?.round?.id) {
+      return;
+    }
+    // Ignore sync messages if the round is not in progress
+    if (gameManager.getState() !== GameManagerStates.ROUND_IN_PROGRESS) {
       return;
     }
     if (message.players) {
       Object.entries(message.players).forEach(([id, props]) => {
-        if (gameManager.players[id] !== undefined) {
+        const player = gameManager.round.getPlayer(id);
+        if (player) {
           if (props.position) {
-            gameManager.players[id].setPosition(props.position.x, props.position.y);
+            player.setPosition(props.position.x, props.position.y);
           }
           if (props.speed) {
-            gameManager.players[id].setSpeed(props.speed.x, props.speed.y);
+            player.setSpeed(props.speed.x, props.speed.y);
           }
         }
       });
     }
-    if (message.flags && gameManager.getState() === GameManagerStates.PLAYING) {
-      Object.entries(message.flags).forEach(([id, value]) => {
-        if (!gameManager.flags.exists(id)) {
-          gameManager.flags.set(id, value);
-          console.log(`Adding flag ${id} with value ${value}`);
-        }
-      });
+    if (message.flags) {
+      gameManager.round.setFlags(message.flags);
     }
   }
 
   function processAddPlayer(message) {
     if (message.playerID) {
-      gameManager.addPlayer(message.playerID);
+      gameManager.handleAddPlayer(message.playerID);
     } else {
       reportError('Error: Received addPlayer message without playerID');
     }
@@ -68,7 +69,7 @@ function initApp(config) {
 
   function processRemovePlayer(message) {
     if (message.playerID) {
-      gameManager.removePlayer(message.playerID);
+      gameManager.handleRemovePlayer(message.playerID);
     } else {
       reportError('Error: Received removePlayer message without playerID');
     }
@@ -76,7 +77,11 @@ function initApp(config) {
 
   function processPlayerReady(message) {
     if (message.state && message.playerID) {
-      gameManager.playerReady(message.state, message.playerID);
+      // Ignore playerReady messages if the state has changed
+      if (gameManager.getState() !== message.state) {
+        return;
+      }
+      gameManager.handlePlayerReady(message.playerID);
     } else {
       reportError('Error: Received playerReady message without state or playerID');
     }
@@ -92,23 +97,26 @@ function initApp(config) {
   function sendSync(socket) {
     const message = {
       type: 'sync',
-      round: gameManager.round,
-      storyline: gameManager.storyline,
-      state: gameManager.getState(),
-      players: Object.values(gameManager.players).reduce((acc, player) => {
+      state: gameManager.getDeprecatedStateName(),
+    };
+
+    const { round } = gameManager;
+
+    Object.assign(message, {
+      round: round.id,
+      storyline: round.storyline,
+      players: Object.values(round.players).reduce((acc, player) => {
         acc[player.id] = {
           position: player.position,
           speed: player.speed,
         };
         return acc;
       }, {}),
-      flags: gameManager.flags.flags,
-    };
-    if (gameManager.getState() === GameManagerStates.PLAYING && gameManager.roundStartTime) {
-      message.roundCountdown = Math.max(
-        0,
-        config.game.duration * 1000 - (Date.now() - gameManager.roundStartTime)
-      );
+      flags: round.flags.asJSON(),
+    });
+
+    if (gameManager.getState() === GameManagerStates.ROUND_IN_PROGRESS) {
+      message.roundCountdown = round.getRoundCountdown(config.game.duration);
     }
     socket.send(JSON.stringify(message));
   }
@@ -126,8 +134,6 @@ function initApp(config) {
     const ip = socket._socket.remoteAddress;
     console.log(`Client connected from ${ip}`);
     console.log(`Connected (${wss.clients.size} clients)`);
-
-    let playerId = null;
 
     socket.on('message', (data) => {
       const message = JSON.parse(data);

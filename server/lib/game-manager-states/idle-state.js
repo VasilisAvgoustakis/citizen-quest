@@ -1,26 +1,26 @@
 const GameManagerState = require('./game-manager-state');
-const { IDLE } = require('../game-manager-states');
+const { IDLE, ROUND_STARTING } = require('./states');
 
-class GameManagerIdleState extends GameManagerState {
+class IdleState extends GameManagerState {
   constructor(gameManager) {
     super(gameManager);
     this.state = IDLE;
   }
 
   onEnter() {
-    this.gameManager.startRound();
-
-    const playersToRemove = [];
-    Object.keys(this.gameManager.players).forEach((playerId) => {
-      if (!this.gameManager.playersContinuing.has(playerId)) {
-        playersToRemove.push(playerId);
-      }
-    });
-    if (this.gameManager.playersContinuing.size > 0) {
-      this.gameManager.playersContinuing = new Set();
+    super.onEnter();
+    this.gameManager.destroyRound();
+    this.gameManager.initializeRound();
+    if (this.gameManager.hasQueuedPlayers()) {
+      this.gameManager.setState(ROUND_STARTING);
     }
-    this.gameManager.removePlayers(playersToRemove);
+  }
+
+  onAddPlayer(playerId) {
+    super.onAddPlayer(playerId);
+    this.gameManager.queuePlayer(playerId);
+    this.gameManager.setState(ROUND_STARTING);
   }
 }
 
-module.exports = GameManagerIdleState;
+module.exports = IdleState;

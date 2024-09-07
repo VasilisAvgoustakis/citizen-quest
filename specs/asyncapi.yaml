@@ -154,3 +154,5 @@ components:
           const: playerReady
         playerId:
           type: string
+        state:
+          type: string

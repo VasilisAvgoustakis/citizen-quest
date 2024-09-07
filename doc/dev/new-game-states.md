@@ -43,25 +43,25 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
     [*] --> idle
-    idle --> roundInitialized: addPlayer
-    roundInitialized --> roundInProgress: playerReady
-    roundInitialized --> roundInProgress: timeout
+    idle --> roundStarting: addPlayer
+    roundStarting --> roundInProgress: playerReady
+    roundStarting --> roundInProgress: timeout
     roundInProgress --> roundCompleted: timeOver
-    roundInProgress --> roundCompleted: playerAbort<br>[playerCount == 1]
+    roundInProgress --> roundCompleted: removePlayer<br>[playerCount == 1]
     roundInProgress --> roundCompleted: playerReady<br>[players.allReady]
     roundCompleted --> idle: playerReady<br>[players.allReady]
     roundCompleted --> idle: timeout
 ```
 
 - **idle**: No one is playing.
-- **roundInitialized**: A round started. There's at least one player.
+- **roundStarting**: A round is starting. There's at least one player.
 - **roundInProgress**: A round is being played.
 - **ended**: The round has ended.
 
 ## Interplay between Game Server and the Stations
 
 - **Game 'idle'**: No sessions exist. Stations can only be in the **idle**, or **ready** states.
-- **Game 'roundInitialized'**: One or more sessions exist. Stations can be **idle**, **ready** (waiting to get 
+- **Game 'roundStarting'**: One or more sessions exist. Stations can be **idle**, **ready** (waiting to get 
    the server response), or **intro** (waiting for the player to press the button).
 - **Game 'roundInProgress'**: At least one station is in the **intro**, or **playing** state. The rest could be in any state.
 - **Game 'roundCompleted'**: At least one station is in the **ending** state. The rest could be in 

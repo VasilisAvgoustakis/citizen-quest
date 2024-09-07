@@ -1,52 +1,60 @@
 const EventEmitter = require('events');
-const Character = require('../../src/js/lib/model/character');
 const reportError = require('./errors');
-const GameManagerStates = require('./game-manager-states');
-const GameManagerIdleState = require('./game-manager-states/idle-state');
-const GameManagerIntroState = require('./game-manager-states/intro-state');
-const GameManagerPlayingState = require('./game-manager-states/playing-state');
-const GameManagerEndingState = require('./game-manager-states/ending-state');
-
-const FlagStore = require('../../src/js/lib/model/flag-store');
+const GameManagerStates = require('./game-manager-states/states');
 const StorylineManager = require('../../src/js/lib/model/storyline-manager');
+const getHandler = require('./game-manager-states/get-handler');
+const GameRound = require('./game-round');
 
 class GameManager {
   constructor(config) {
     this.config = config;
     this.storylineManager = new StorylineManager(this.config);
-
     this.events = new EventEmitter();
-    this.players = {};
-    this.roundStartTime = null;
-    this.round = 0;
-    this.storyline = null;
-    this.flags = new FlagStore();
 
     this.stateHandler = null;
-    this.transitionState = null;
-    this.readyPlayers = new Set();
-    this.transitionTimeout = null;
-    this.playersContinuing = new Set();
-
-    this.events.on('playerCountChange', this.handlePlayerCountChange.bind(this));
+    this.round = null;
+    this.lastStoryline = null;
+    this.playerQueue = new Set();
   }
 
   init() {
     this.setState(GameManagerStates.IDLE);
   }
 
-  startRound() {
+  getNextStoryline() {
+    this.lastStoryline = this.storylineManager.getNext(this.lastStoryline);
+    return this.lastStoryline;
+  }
+
+  /**
+   * Create a new round.
+   */
+  initializeRound() {
     if (this.getState() !== GameManagerStates.IDLE) {
       reportError('Error: Attempting to start round when not in IDLE state');
       return;
     }
-    if (this.round !== 0) {
-      this.events.emit('roundEnded', this.round, this.storyline);
-    }
-    this.round += 1;
-    this.roundStartTime = null;
-    this.storyline = this.storylineManager.getNext(this.storyline);
-    this.events.emit('roundStarted', this.round, this.storyline);
+
+    this.round = new GameRound(this.getNextStoryline());
+    this.events.emit('roundCreated', this.round.id, this.round.storyline);
+  }
+
+  /**
+   * Destroy the current round.
+   */
+  destroyRound() {
+    this.round = null;
+  }
+
+  /**
+   * Returns true if there's a round in progress.
+   */
+  hasRound() {
+    return this.round !== null;
+  }
+
+  handleAddPlayer(playerId) {
+    this.getStateHandler().onAddPlayer(playerId);
   }
 
   /**
@@ -65,18 +73,16 @@ class GameManager {
       return;
     }
 
-    if (this.players[playerId] !== undefined) {
+    if (this.round.hasPlayer(playerId)) {
       reportError(`Error: Attempting to add already added player ${playerId}`);
       return;
     }
 
-    this.players[playerId] = new Character(playerId, this.config.players[playerId]);
-    this.events.emit('playerAdded', playerId);
-    this.events.emit('playerCountChange', 1);
+    this.round.addPlayer(playerId, this.config.players[playerId]);
+  }
 
-    if (this.getState() === GameManagerStates.ENDING) {
-      this.playerContinuing(playerId);
-    }
+  handleRemovePlayer(playerId) {
+    this.getStateHandler().onRemovePlayer(playerId);
   }
 
   /**
@@ -84,81 +90,61 @@ class GameManager {
    *
    * @param {string} playerId
    */
-  removePlayers(playerIds) {
-    let delta = 0;
-    playerIds.forEach((playerId) => {
-      if (this.players[playerId]) {
-        delete this.players[playerId];
-        this.readyPlayers.delete(playerId);
-        this.events.emit('playerRemoved', playerId);
-        delta -= 1;
-      }
+  removePlayer(playerId) {
+    if (this.round.hasPlayer(playerId)) {
+      this.round.removePlayer(playerId);
+    }
+  }
+
+  handlePlayerReady(playerId) {
+    this.getStateHandler().onPlayerReady(playerId);
+  }
+
+  queuePlayer(playerId) {
+    this.playerQueue.add(playerId);
+  }
+
+  clearPlayerQueue() {
+    this.playerQueue.clear();
+  }
+
+  hasQueuedPlayers() {
+    return this.playerQueue.size > 0;
+  }
+
+  addQueuedPlayers() {
+    this.playerQueue.forEach((playerId) => {
+      this.addPlayer(playerId);
     });
-    this.events.emit('playerCountChange', delta);
-  }
-
-  handlePlayerCountChange() {
-    const playerCount = Object.keys(this.players).length;
-    if (this.getState() === GameManagerStates.IDLE) {
-      if (playerCount > 0) {
-        this.setState(GameManagerStates.PLAYING);
-      }
-    } else if (playerCount === 0) {
-      this.setState(GameManagerStates.IDLE);
-    } else {
-      this.checkAllPlayersReady();
-    }
-  }
-
-  /**
-   * Called when a player is ready to move to the next stateHandler. If all players are ready,
-   * the game stateHandler is advanced.
-   *
-   * @param {string} state
-   *  The stateHandler the player is ready to move away from.
-   * @param {string} playerId
-   *  The player ID.
-   */
-  playerReady(state, playerId) {
-    // Check if the player is in the players list.
-    if (this.players[playerId] === undefined) {
-      reportError(`Error: Attempting to set ready state for a non active player (${playerId})`);
-      return;
-    }
-    if (this.getState() !== state) {
-      return;
-    }
-    this.readyPlayers.add(playerId);
-    this.checkAllPlayersReady();
-  }
-
-  playerContinuing(playerId) {
-    this.playersContinuing.add(playerId);
-  }
-
-  /**
-   * Check if all players are ready to move to the next stateHandler.
-   * If so, advance the game stateHandler.
-   */
-  checkAllPlayersReady() {
-    const allReady = Object.keys(this.players).reduce((acc, playerId) => (
-      acc && this.readyPlayers.has(playerId)
-    ), true);
-
-    if (allReady) {
-      this.transitionToPreparedState();
-    }
-  }
-
-  /**
-   * Clear the list of players ready to move to the next stateHandler.
-   */
-  clearReadyPlayers() {
-    this.readyPlayers = new Set();
+    this.clearPlayerQueue();
   }
 
   getState() {
-    return (this.stateHandler && this.stateHandler.state) || null;
+    return (this.stateHandler && this.stateHandler.state) ?? null;
+  }
+
+  getStateHandler() {
+    return this.stateHandler;
+  }
+
+  getDeprecatedStateName() {
+    const state = (this.stateHandler && this.stateHandler.state) || null;
+    if (state) {
+      switch (state) {
+        case GameManagerStates.IDLE:
+          return 'idle';
+        case GameManagerStates.ROUND_STARTING:
+          return 'intro';
+        case GameManagerStates.ROUND_IN_PROGRESS:
+          return 'playing';
+        case GameManagerStates.ROUND_COMPLETED:
+          return 'ending';
+        default:
+          throw new Error(`Unknown state ${state}`);
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -176,70 +162,28 @@ class GameManager {
       return;
     }
 
-    this.clearStateTransition();
+    this.clearStateTimeout();
     const oldState = this.getState();
     if (this.stateHandler) {
       this.stateHandler.onExit(state);
     }
-    this.stateHandler = this.createStateHandler(state);
+    this.stateHandler = getHandler(this, state);
     if (this.stateHandler) {
       this.stateHandler.onEnter(oldState);
     }
-    this.events.emit('stateChanged', state);
   }
 
-  createStateHandler(state) {
-    switch (state) {
-      case GameManagerStates.IDLE:
-        return new GameManagerIdleState(this);
-      case GameManagerStates.INTRO:
-        return new GameManagerIntroState(this);
-      case GameManagerStates.PLAYING:
-        return new GameManagerPlayingState(this);
-      case GameManagerStates.ENDING:
-        return new GameManagerEndingState(this);
-      default:
-        reportError(`Error: Attempting to create invalid state ${state}`);
-        return new GameManagerIdleState(this);
+  clearStateTimeout() {
+    if (this.stateTimeout) {
+      clearTimeout(this.stateTimeout);
+      this.stateTimeout = null;
     }
   }
 
-  /**
-   * Prepare a transition to another stateHandler, conditional to every player confirming.
-   */
-  prepareStateTransition(nextState, timeout) {
-    if (Object.values(GameManagerStates).indexOf(nextState) === -1) {
-      reportError(`Error: Attempting to prepare invalid state ${nextState}`);
-      return;
-    }
-    this.clearStateTransition();
-    this.transitionState = nextState;
-    if (timeout > 0) {
-      this.transitionTimeout = setTimeout(() => {
-        this.transitionToPreparedState();
-      }, timeout);
-    }
-  }
-
-  /**
-   * Clear the current prepared stateHandler transition.
-   */
-  clearStateTransition() {
-    this.transitionState = null;
-    if (this.transitionTimeout) {
-      clearTimeout(this.transitionTimeout);
-      this.transitionTimeout = null;
-    }
-    this.clearReadyPlayers();
-  }
-
-  /**
-   * Transition to the prepared stateHandler.
-   */
-  transitionToPreparedState() {
-    const nextState = this.transitionState;
-    this.clearStateTransition();
-    this.setState(nextState);
+  setStateTimeout(duration) {
+    this.stateTimeout = setTimeout(() => {
+      this.stateHandler.onTimeout();
+    }, duration);
   }
 }
 

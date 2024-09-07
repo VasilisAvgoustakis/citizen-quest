@@ -41303,6 +41303,10 @@ class FlagStore {
       Object.entries(this.flags).sort((a, b) => a[0].localeCompare(b[0]))
     ), null, 2);
   }
+
+  asJSON() {
+    return this.flags;
+  }
 }
 
 FlagStore.MIN_VALUE = 0;
@@ -43747,4 +43751,4 @@ const MapApp = __webpack_require__(/*! ./lib/app/map-app */ "./src/js/lib/app/ma
 
 /******/ })()
 ;
-//# sourceMappingURL=map.7e23b0317ae98e178cd1.js.map
+//# sourceMappingURL=map.05ad49b07387efb9ffd1.js.map
