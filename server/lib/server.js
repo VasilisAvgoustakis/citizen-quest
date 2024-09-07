@@ -1,11 +1,12 @@
-const initApp = require('./app.js');
+const logger = require('winston');
+const initApp = require('./app');
 
 function createServer(port, config) {
   const [app, wss] = initApp(config);
   const server = app.listen(port);
 
   server.on('upgrade', (request, socket, head) => {
-    console.log('Upgrade request');
+    logger.info('Upgrading connection to WebSocket');
     wss.handleUpgrade(request, socket, head, (socket2) => {
       wss.emit('connection', socket2, request);
     });

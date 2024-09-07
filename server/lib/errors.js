@@ -1,13 +1,14 @@
 const Sentry = require('@sentry/node');
+const logger = require('winston');
 
 function reportError(error) {
   // If error is a string
   if (typeof error === 'string') {
-    console.error(error);
+    logger.error(error);
     Sentry.captureMessage(error);
   } else {
-    console.error(error.message);
-    console.error(error.stack);
+    logger.error(error.message);
+    logger.error(error.stack);
     Sentry.captureException(error);
   }
 }

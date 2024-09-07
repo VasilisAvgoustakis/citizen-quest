@@ -8,9 +8,10 @@ const createServer = require('./lib/server');
 const CfgLoader = require('../src/js/lib/loader/cfg-loader');
 const CfgReaderFile = require('../src/js/lib/loader/cfg-reader-file');
 const storylineLoader = require('../src/js/lib/loader/storyline-loader');
+const configureWinston = require('./lib/configure-winston');
 
 const {
-  port, settingsFile, outputConfiguration, sentryDsn,
+  port, settingsFile, outputConfiguration, sentryDsn, logLevel,
 } = yargs(hideBin(process.argv))
   .option('p', {
     alias: 'port',
@@ -33,15 +34,23 @@ const {
     default: process.env.SENTRY_DSN || null,
     describe: 'Sentry DSN for error reporting',
   })
+  // Add an option to control the log level
+  .option('log-level', {
+    default: process.env.LOG_LEVEL || 'info',
+    describe: 'Log level for the server',
+  })
   .argv;
+
+const logger = configureWinston({ level: logLevel });
 
 let sentryInitialized = false;
 if (sentryDsn) {
-  console.log('Initializing Sentry (with DSN from command line)');
+  logger.info('Initializing Sentry (with DSN from command line)');
   Sentry.init({ dsn: sentryDsn });
   sentryInitialized = true;
 }
 
+logger.verbose('Loading configuration');
 const cfgLoader = new CfgLoader(CfgReaderFile, yaml.load);
 cfgLoader.load([
   '../config/system.yml',
@@ -57,34 +66,38 @@ cfgLoader.load([
   ...[settingsFile].flat(), // settingsFile may be a string or array of strings
 ])
   .then((config) => {
+    logger.verbose('Configuration loaded');
+    if (outputConfiguration) {
+      logger.info('Active configuration:');
+      logger.info('--- begin ---');
+      logger.info(yaml.dump(config));
+      logger.info('--- end ---');
+    }
     if (!sentryInitialized && config?.system?.sentry?.dsn) {
-      console.log('Initializing Sentry (with DSN from configuration)');
+      logger.info('Initializing Sentry (with DSN from configuration)');
       Sentry.init({ dsn: config.system.sentry.dsn });
       sentryInitialized = true;
     }
-    if (outputConfiguration) {
-      console.log('Active configuration:');
-      console.log('--- begin ---');
-      console.log(yaml.dump(config));
-      console.log('--- end ---');
-    }
+    logger.verbose('Loading storylines');
     return storylineLoader(cfgLoader, '../config/storylines', config.storylines)
       .then((storylines) => {
+        logger.verbose('Storylines loaded');
         config.storylines = storylines;
         return config;
       });
-})
+  })
   .catch((err) => {
-    console.error('Error loading configuration');
-    console.error(err);
+    logger.error('Error loading configuration');
+    logger.error(err);
     Sentry.captureException(err);
     process.exit(1);
   })
   .then((config) => {
+    logger.verbose('Creating server');
     createServer(port, config);
-    console.log(`Listening on port ${port}`);
+    logger.info(`Listening on port ${port}`);
   })
   .catch((err) => {
-    console.error(err);
+    logger.error(err);
     Sentry.captureException(err);
   });

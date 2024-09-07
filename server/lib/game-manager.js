@@ -1,4 +1,5 @@
 const EventEmitter = require('events');
+const logger = require('winston');
 const reportError = require('./errors');
 const GameManagerStates = require('./game-manager-states/states');
 const StorylineManager = require('../../src/js/lib/model/storyline-manager');
@@ -36,7 +37,7 @@ class GameManager {
     }
 
     this.round = new GameRound(this.getNextStoryline(), this.config.game.duration);
-    this.events.emit('roundCreated', this.round.id, this.round.storyline);
+    logger.verbose(`Round ${this.round.id} created with storyline ${this.round.storyline}`);
   }
 
   /**
@@ -102,10 +103,12 @@ class GameManager {
 
   queuePlayer(playerId) {
     this.playerQueue.add(playerId);
+    logger.verbose(`Player ${playerId} queued`);
   }
 
   clearPlayerQueue() {
     this.playerQueue.clear();
+    logger.debug('Player queue cleared');
   }
 
   hasQueuedPlayers() {
@@ -113,6 +116,7 @@ class GameManager {
   }
 
   addQueuedPlayers() {
+    logger.debug('Adding queued players');
     this.playerQueue.forEach((playerId) => {
       this.addPlayer(playerId);
     });
@@ -156,6 +160,7 @@ class GameManager {
     if (this.getState() === state) {
       return;
     }
+    logger.verbose(`State change: ${this.getState()} -> ${state}`);
     // Check if the stateHandler is valid.
     if (Object.values(GameManagerStates).indexOf(state) === -1) {
       reportError(`Error: Attempting to set invalid state ${state}`);

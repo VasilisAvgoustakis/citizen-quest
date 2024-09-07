@@ -1,3 +1,4 @@
+const logger = require('winston');
 const FlagStore = require('../../src/js/lib/model/flag-store');
 const Character = require('../../src/js/lib/model/character');
 
@@ -55,6 +56,7 @@ class GameRound {
 
   addPlayer(playerId, options) {
     this.players[playerId] = new Character(playerId, options);
+    logger.verbose(`Player ${playerId} added to round ${this.id}`);
   }
 
   hasPlayer(playerId) {
@@ -72,6 +74,7 @@ class GameRound {
   removePlayer(playerId) {
     delete this.players[playerId];
     this.readyPlayers.delete(playerId);
+    logger.verbose(`Player ${playerId} removed from round ${this.id}`);
   }
 
   markPlayerReady(playerId) {
@@ -79,6 +82,7 @@ class GameRound {
       throw new Error(`Error: Attempting to mark unknown player ${playerId} as ready`);
     }
     this.readyPlayers.add(playerId);
+    logger.verbose(`Player ${playerId} is ready`);
   }
 
   isAPlayerReady() {
@@ -97,7 +101,7 @@ class GameRound {
     Object.entries(flags).forEach(([id, value]) => {
       if (!this.flags.exists(id)) {
         this.flags.set(id, value);
-        console.log(`Flag ${id} set to ${value}`);
+        logger.verbose(`Flag ${id} <- ${value}`);
       }
     });
   }
