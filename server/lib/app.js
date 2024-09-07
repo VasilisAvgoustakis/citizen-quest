@@ -5,7 +5,7 @@ const cors = require('cors');
 const OpenApiValidator = require('express-openapi-validator');
 const reportError = require('./errors');
 const GameManager = require('./game-manager');
-const GameManagerStates = require('./game-manager-states/states');
+const GameManagerNetAdapter = require('./game-manager-net-adapter');
 
 function initApp(config) {
   const serverID = `${process.pid}:${Date.now()}`;
@@ -16,6 +16,13 @@ function initApp(config) {
     console.log(`Round ${round} created (${storyline})`);
   });
   gameManager.init();
+
+  function generateServerInfo() {
+    return {
+      type: 'serverInfo',
+      serverID,
+    };
+  }
 
   const app = express();
   app.use(cors());
@@ -28,104 +35,11 @@ function initApp(config) {
     })
   );
 
+  const adapter = new GameManagerNetAdapter(gameManager);
+
   app.get('/config', (req, res) => {
     res.json(config);
   });
-
-  function processSync(message) {
-    // Ignore sync messages from previous rounds
-    if (message.round !== gameManager?.round?.id) {
-      return;
-    }
-    // Ignore sync messages if the round is not in progress
-    if (gameManager.getState() !== GameManagerStates.ROUND_IN_PROGRESS) {
-      return;
-    }
-    if (message.players) {
-      Object.entries(message.players).forEach(([id, props]) => {
-        const player = gameManager.round.getPlayer(id);
-        if (player) {
-          if (props.position) {
-            player.setPosition(props.position.x, props.position.y);
-          }
-          if (props.speed) {
-            player.setSpeed(props.speed.x, props.speed.y);
-          }
-        }
-      });
-    }
-    if (message.flags) {
-      gameManager.round.setFlags(message.flags);
-    }
-  }
-
-  function processAddPlayer(message) {
-    if (message.playerID) {
-      gameManager.handleAddPlayer(message.playerID);
-    } else {
-      reportError('Error: Received addPlayer message without playerID');
-    }
-  }
-
-  function processRemovePlayer(message) {
-    if (message.playerID) {
-      gameManager.handleRemovePlayer(message.playerID);
-    } else {
-      reportError('Error: Received removePlayer message without playerID');
-    }
-  }
-
-  function processPlayerReady(message) {
-    if (message.state && message.playerID) {
-      // Ignore playerReady messages if the state has changed
-      if (gameManager.getState() !== message.state) {
-        return;
-      }
-      gameManager.handlePlayerReady(message.playerID);
-    } else {
-      reportError('Error: Received playerReady message without state or playerID');
-    }
-  }
-
-  function sendServerInfo(socket) {
-    socket.send(JSON.stringify({
-      type: 'serverInfo',
-      serverID,
-    }));
-  }
-
-  function sendSync(socket) {
-    const message = {
-      type: 'sync',
-      state: gameManager.getDeprecatedStateName(),
-    };
-
-    const { round } = gameManager;
-
-    Object.assign(message, {
-      round: round.id,
-      storyline: round.storyline,
-      players: Object.values(round.players).reduce((acc, player) => {
-        acc[player.id] = {
-          position: player.position,
-          speed: player.speed,
-        };
-        return acc;
-      }, {}),
-      flags: round.flags.asJSON(),
-    });
-
-    if (gameManager.getState() === GameManagerStates.ROUND_IN_PROGRESS) {
-      message.roundCountdown = round.getRoundCountdown(config.game.duration);
-    }
-    socket.send(JSON.stringify(message));
-  }
-
-  function sendPong(socket) {
-    socket.send(JSON.stringify({
-      type: 'pong',
-    }));
-  }
 
   const wss = new ws.Server({ noServer: true, clientTracking: true });
 
@@ -139,24 +53,24 @@ function initApp(config) {
       const message = JSON.parse(data);
       if (typeof message === 'object' && typeof message.type === 'string') {
         switch (message.type) {
-          case 'sync':
-            processSync(message);
-            sendSync(socket);
+          case 'info':
+            socket.send(JSON.stringify(generateServerInfo()));
             break;
           case 'ping':
-            sendPong(socket);
+            socket.send(JSON.stringify({ type: 'pong' }));
             break;
-          case 'info':
-            sendServerInfo(socket);
+          case 'sync':
+            adapter.processSync(message);
+            socket.send(JSON.stringify(adapter.generateSync()));
             break;
           case 'addPlayer':
-            processAddPlayer(message);
+            adapter.processAddPlayer(message);
             break;
           case 'removePlayer':
-            processRemovePlayer(message);
+            adapter.processRemovePlayer(message);
             break;
           case 'playerReady':
-            processPlayerReady(message);
+            adapter.processPlayerReady(message);
             break;
           default:
             reportError(`Error: Received message of unknown type '${message.type}'`);
@@ -175,7 +89,7 @@ function initApp(config) {
       reportError(`Socket error (code: ${err.code}): ${err.message}`);
     });
 
-    sendServerInfo(socket);
+    socket.send(JSON.stringify(generateServerInfo()));
   });
 
   wss.on('close', () => {
