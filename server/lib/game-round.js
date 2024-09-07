@@ -11,9 +11,10 @@ class GameRound {
    * Create a new GameRound object.
    * @param {string} storyline
    */
-  constructor(storyline) {
+  constructor(storyline, duration = 0) {
     this.id = GameRound.newRoundId();
     this.startTime = null;
+    this.duration = duration;
     this.storyline = storyline;
     this.flags = new FlagStore();
     this.players = {};
@@ -40,17 +41,15 @@ class GameRound {
   /**
    * Get the remaining time for the round.
    *
-   * @param {number} duration
-   *  The duration of the round in seconds
    * @return {number}
    */
-  getRoundCountdown(duration) {
+  getRoundCountdown() {
     if (!this.startTime) {
-      return duration;
+      return this.duration;
     }
     return Math.max(
       0,
-      duration * 1000 - (Date.now() - this.startTime)
+      this.duration * 1000 - (Date.now() - this.startTime)
     );
   }
 

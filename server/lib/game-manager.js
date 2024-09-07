@@ -35,7 +35,7 @@ class GameManager {
       return;
     }
 
-    this.round = new GameRound(this.getNextStoryline());
+    this.round = new GameRound(this.getNextStoryline(), this.config.game.duration);
     this.events.emit('roundCreated', this.round.id, this.round.storyline);
   }
 
