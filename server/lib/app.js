@@ -2,6 +2,7 @@
 const express = require('express');
 const ws = require('ws');
 const cors = require('cors');
+const url = require('url');
 const OpenApiValidator = require('express-openapi-validator');
 const logger = require('winston');
 const reportError = require('./errors');
@@ -47,7 +48,8 @@ function initApp(config) {
   wss.on('connection', (socket, req) => {
     // eslint-disable-next-line no-underscore-dangle
     const ip = socket._socket.remoteAddress;
-    logger.info(`Client connected from ${ip} (${wss.clients.size} clients)`);
+    const clientID = url.parse(req.url, true)?.query?.clientID;
+    logger.info(`Client (ID: ${clientID ?? 'unknown'}) connected from ${ip} (${wss.clients.size} clients)`);
     logger.info(`User Agent: ${req.headers['user-agent']}`);
 
     socket.on('message', (data) => {

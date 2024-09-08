@@ -39,7 +39,7 @@ const Character = require('./lib/model/character');
     playerApp.refresh();
 
     let syncReceived = false;
-    const connector = new ServerSocketConnector(config, getSocketServerUrl());
+    const connector = new ServerSocketConnector(config, getSocketServerUrl(), `player-${playerId}`);
     const connStateView = new ConnectionStateView(connector);
     $('body').append(connStateView.$element);
 

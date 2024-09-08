@@ -6,9 +6,10 @@ const ReconnectDelayState = require('./server-socket-connector-states/reconnect-
 const OpenState = require('./server-socket-connector-states/open');
 
 class ServerSocketConnector {
-  constructor(config, uri) {
+  constructor(config, uri, clientId) {
     this.config = config;
     this.uri = uri;
+    this.clientId = clientId;
     this.ws = null;
     this.events = new EventEmitter();
     this.state = null;
@@ -57,7 +58,10 @@ class ServerSocketConnector {
 
     console.log(`Connecting to ${this.uri}...`);
     this.events.emit('connecting');
-    this.ws = new WebSocket(this.uri);
+    // Build the URI adding the clientId in the query string
+    const uri = new URL(this.uri);
+    uri.searchParams.set('clientID', this.clientId);
+    this.ws = new WebSocket(uri.href);
     this.ws.onopen = this.handleOpen.bind(this);
     this.ws.onclose = this.handleClose.bind(this);
     this.ws.onmessage = this.handleMessage.bind(this);
