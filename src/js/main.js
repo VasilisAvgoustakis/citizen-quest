@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const yaml = require('js-yaml');
 const CfgReaderFetch = require('./lib/loader/cfg-reader-fetch');
 const CfgLoader = require('./lib/loader/cfg-loader');
@@ -12,20 +11,24 @@ require('../sass/default.scss');
 const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const StorylineManager = require('./lib/model/storyline-manager');
 const storylineLoader = require('./lib/loader/storyline-loader');
+const configureLogger = require('./lib/helpers/configure-logger');
 
 (async () => {
-  try {
     const urlParams = new URLSearchParams(window.location.search);
     const statsPanel = urlParams.get('s') || null;
     const liveTest = urlParams.get('test') || null;
     const storylineId = urlParams.get('storyline') || null;
+  const logLevel = urlParams.get('log') || 'warn';
+  const logger = configureLogger({ level: logLevel });
+
+  try {
     // Accept a settings url param but only if it's made of alphanumeric characters, _ or -, and
     // has a .yml extension.
     let settingsFilename = 'settings.yml';
     const settingsFileUnsafe = urlParams.get('settings');
     if (urlParams.get('settings')) {
       if (!urlParams.get('settings').match(/^[a-zA-Z0-9_-]+\.yml$/)) {
-        console.warn('Invalid settings file name. Ignoring. Use only alphanumeric characters, _ or -. and .yml extension.');
+        logger.warn('Invalid settings file name. Ignoring. Use only alphanumeric characters, _ or -. and .yml extension.');
       } else {
         settingsFilename = settingsFileUnsafe;
       }
@@ -93,6 +96,6 @@ const storylineLoader = require('./lib/loader/storyline-loader');
     }
   } catch (err) {
     showFatalError(err.message, err);
-    console.error(err);
+    logger.error(err);
   }
 })();

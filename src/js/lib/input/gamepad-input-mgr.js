@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
+const logger = require('loglevel');
 const deepmerge = require('deepmerge');
-
 const InputMgr = require('./input-mgr');
 const GamepadMapper = require('./gamepad-mapper');
 
@@ -52,7 +51,7 @@ class GamepadInputMgr extends InputMgr {
    */
   constructor(mapperConfig = {}) {
     super();
-    console.log(
+    logger.info(
       mapperConfig,
       deepmerge(standardMapperConfig, mapperConfig ?? {})
     );
@@ -63,10 +62,10 @@ class GamepadInputMgr extends InputMgr {
     this.handleGamepadDisConnected = () => {
       const gamepad = navigator.getGamepads().find((g) => g !== null);
       if (typeof gamepad !== 'undefined') {
-        console.log(`Using gamepad ${gamepad.index}: ${gamepad.id}`);
+        logger.info(`Using gamepad ${gamepad.index}: ${gamepad.id}`);
         this.gamepadIndex = gamepad.index;
       } else {
-        console.log('No gamepad connected');
+        logger.info('No gamepad connected');
         this.gamepadIndex = -1;
       }
     };

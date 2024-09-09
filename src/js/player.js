@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ServerSocketConnector = require('./lib/net/server-socket-connector');
 const ConnectionStateView = require('./lib/net/connection-state-view');
 const showFatalError = require('./lib/helpers-web/show-fatal-error');
@@ -11,14 +10,17 @@ const fetchConfig = require('./lib/helpers-client/fetch-config');
 const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const PlayerAppStates = require('./lib/app/player-app-states/states');
 const Character = require('./lib/model/character');
+const configureLogger = require('./lib/helpers/configure-logger');
 
 (async () => {
-  try {
     const urlParams = new URLSearchParams(window.location.search);
     const playerId = urlParams.get('p') || '1';
     const statsPanel = urlParams.get('s') || null;
     const configUrl = `${getApiServerUrl()}config`;
+  const logLevel = urlParams.get('log') || 'warn';
+  const logger = configureLogger({ level: logLevel });  
 
+  try {
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
     let sentryInitialized = false;
     if (sentryDSN) {
@@ -129,5 +131,6 @@ const Character = require('./lib/model/character');
     showFatalError(err.message, err);
     // eslint-disable-next-line no-console
     console.error(err);
+    logger.error(err);
   }
 })();

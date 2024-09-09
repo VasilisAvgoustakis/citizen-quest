@@ -1,6 +1,6 @@
-/* eslint-disable no-console */
 const Ajv = require('ajv');
 const schema = require('../../../../../specs/dialogue.schema.json');
+const logger = require('loglevel');
 
 function validateDialogueDefinition(dialogueDefinition) {
   if (!validateDialogueDefinition.validate) {
@@ -9,7 +9,7 @@ function validateDialogueDefinition(dialogueDefinition) {
   }
   const valid = validateDialogueDefinition.validate(dialogueDefinition);
   if (!valid) {
-    console.error('Error validating dialogue', validateDialogueDefinition.validate.errors);
+    logger.error('Error validating dialogue', validateDialogueDefinition.validate.errors);
     throw new Ajv.ValidationError(validateDialogueDefinition.validate.errors);
   }
   return true;

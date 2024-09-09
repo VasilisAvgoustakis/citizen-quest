@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+const logger = require('loglevel');
 const ServeSocketConnectorState = require('./server-socket-connector-state');
 
 class OpenState extends ServeSocketConnectorState {
@@ -47,8 +47,8 @@ class OpenState extends ServeSocketConnectorState {
     const timeout = this.connector.config.network.pongWaitTime || 10000;
     this.pongTimeout = setTimeout(() => {
       this.pongTimeout = null;
-      console.warn(`PONG not received after ${timeout / 1000} seconds`);
-      console.warn('Resetting connection.');
+      logger.warn(`PONG not received after ${timeout / 1000} seconds`);
+      logger.warn('Resetting connection.');
       this.connector.close();
     }, timeout);
   }
@@ -65,8 +65,8 @@ class OpenState extends ServeSocketConnectorState {
     const timeout = this.connector.config.network.pongWaitTime || 10000;
     this.serverInfoTimeout = setTimeout(() => {
       this.serverInfoTimeout = null;
-      console.warn(`No serverInfo received after ${timeout / 1000} seconds`);
-      console.warn('Resetting connection');
+      logger.warn(`No serverInfo received after ${timeout / 1000} seconds`);
+      logger.warn('Resetting connection');
       this.connector.close();
     }, timeout);
   }

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ServerSocketConnector = require('./lib/net/server-socket-connector');
 const ConnectionStateView = require('./lib/net/connection-state-view');
 const showFatalError = require('./lib/helpers-web/show-fatal-error');
@@ -8,13 +7,16 @@ const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const { getApiServerUrl, getSocketServerUrl } = require('./lib/net/server-url');
 const { initSentry } = require('./lib/helpers/sentry');
 const MapApp = require('./lib/app/map-app');
+const configureLogger = require('./lib/helpers/configure-logger');
 
 (async () => {
-  try {
     const urlParams = new URLSearchParams(window.location.search);
     const statsPanel = urlParams.get('s') || null;
     const configUrl = `${getApiServerUrl()}config`;
+  const logLevel = urlParams.get('log') || 'warn';
+  const logger = configureLogger({ level: logLevel });
 
+  try {
     const sentryDSN = urlParams.get('sentry-dsn') || process.env.SENTRY_DSN;
     let sentryInitialized = false;
     if (sentryDSN) {
@@ -80,7 +82,7 @@ const MapApp = require('./lib/app/map-app');
         Object.keys(mapApp.flags.flags).forEach((flag) => {
           if (!setFlags.has(flag) && mapApp.flags.value(flag) !== 0) {
             mapApp.flags.set(flag, 0);
-            console.log(`Clearing flag ${flag}`);
+            logger.info(`Clearing flag ${flag}`);
             flagsChanged = true;
           }
         });
@@ -88,7 +90,7 @@ const MapApp = require('./lib/app/map-app');
         Object.keys(message.flags).forEach((flag) => {
           if (!mapApp.flags.exists(flag)) {
             mapApp.flags.set(flag, message.flags[flag]);
-            console.log(`Adding flag ${flag} with value ${message.flags[flag]}`);
+            logger.info(`Adding flag ${flag} with value ${message.flags[flag]}`);
             flagsChanged = true;
           }
         });
@@ -110,7 +112,6 @@ const MapApp = require('./lib/app/map-app');
     }
   } catch (err) {
     showFatalError(err.message, err);
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error(err);
   }
 })();

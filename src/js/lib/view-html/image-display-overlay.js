@@ -1,3 +1,4 @@
+const logger = require('loglevel');
 const imgPreload = require('../helpers-web/img-preload');
 
 class ImageDisplayOverlay {
@@ -48,7 +49,7 @@ class ImageDisplayOverlay {
         return false;
       })
       .catch((err) => {
-        console.error(err);
+        logger.error(err);
       });
   }
 

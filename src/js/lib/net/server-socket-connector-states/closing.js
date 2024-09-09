@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+const logger = require('loglevel');
 const ServeSocketConnectorState = require('./server-socket-connector-state');
 
 class ClosingState extends ServeSocketConnectorState {
@@ -12,7 +12,7 @@ class ClosingState extends ServeSocketConnectorState {
     // The attempt to close the socket cleanly timed out, so we're going to force it closed.
     const timeout = this.connector.config.network.closeTimeout || 15000;
     this.timeout = setTimeout(() => {
-      console.log(`Closing timed out after ${timeout / 1000} seconds, forcing close.`);
+      logger.warn(`Closing timed out after ${timeout / 1000} seconds, forcing close.`);
       this.connector.onClose();
     }, timeout);
   }

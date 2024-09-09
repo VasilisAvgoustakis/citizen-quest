@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+const logger = require('loglevel');
 const ServeSocketConnectorState = require('./server-socket-connector-state');
 
 class ConnectingState extends ServeSocketConnectorState {
@@ -11,7 +11,7 @@ class ConnectingState extends ServeSocketConnectorState {
   onEnter() {
     const timeout = this.connector.config.network.connectTimeout || 3000;
     this.connectTimeout = setTimeout(() => {
-      console.log(`Connecting timed out, reconnecting in ${timeout / 1000} seconds...`);
+      logger.warn(`Connecting timed out, reconnecting in ${timeout / 1000} seconds...`);
       this.connector.connect();
     }, timeout);
   }

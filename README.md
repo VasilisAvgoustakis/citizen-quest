@@ -27,9 +27,11 @@ The clients, in the root directory, are:
 The `player.html` client accepts the following query string parameters:
 - `p`: Player ID. Defaults to 1.
 - `s`: ID of the stats panel to show (fps, render, ping). Defaults to none.
+- `log`: log level. Options are `debug`, `info`, `warn`, and `error`. Defaults to `warn`
 
 The `map.html` client accepts the following query string parameters:
 - `s`: ID of the stats panel to show (fps, render, ping). Defaults to none.
+- `log`: log level. Options are `debug`, `info`, `warn`, and `error`. Defaults to `warn`
 
 The `index.html` app accepts the following query string parameters:
 - `storyline`: Storyline ID to load. Defaults to the first storyline. 
@@ -38,6 +40,7 @@ The `index.html` app accepts the following query string parameters:
 - `test`: A live test to perform (e.g. `dialogue-responses`)
 - `settings`: The name of a settings file to load. Defaults to `settings.yml`. It must reside in the
   root directory and have a name that only contains letters, numbers, - or _, and ends in `.yml`.
+- `log`: log level. Options are `debug`, `info`, `warn`, and `error`. Defaults to `warn`
 
 ## Configuration
 

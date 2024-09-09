@@ -1,5 +1,5 @@
-/* eslint-disable no-console */
 const Dialogue = require('./dialogue');
+const logger = require('loglevel');
 
 function emptyDialogue(id) {
   return Dialogue.fromJson({
@@ -13,7 +13,7 @@ function emptyDialogue(id) {
 function safeBuildDialogueFromItems(id, items) {
   try {
     if (items.length === 0) {
-      console.error(`Dialogue with id ${id} has no items`);
+      logger.error(`Dialogue with id ${id} has no items`);
       return emptyDialogue(id);
     }
     return Dialogue.fromJson({
@@ -27,7 +27,7 @@ function safeBuildDialogueFromItems(id, items) {
       e.errors.forEach((error) => {
         errorText.push(`- ${error.instancePath} : ${error.message}`);
       });
-      console.error(errorText.join('\n'));
+      logger.error(errorText.join('\n'));
     }
     return emptyDialogue(id);
   }

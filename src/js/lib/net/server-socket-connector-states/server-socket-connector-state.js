@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+const logger = require('loglevel');
+
 class ServeSocketConnectorState {
   constructor(connector) {
     this.connector = connector;
@@ -12,7 +13,7 @@ class ServeSocketConnectorState {
 
   onMessage(event) {
     const className = this.constructor.name;
-    console.error(`Unhandled message in ${className}:`, event.data);
+    logger.error(`Unhandled message in ${className}:`, event.data);
   }
 }
 
