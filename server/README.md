@@ -14,6 +14,8 @@ This server connects the different stations that form part of the exhibit.
 - **Sentry DSN** (default undefined): Set through the SENTRY_DSN env var or the `--sentry-dsn` option.
 - **Output config** (default false): If true, prints the contents of the configuration before
     starting the server. Set through the OUTPUT_CONFIG env var or the `-o` / `--output-config` option.
+- **Log level** (default 'info'): Set through the LOG_LEVEL env var or the `-l` / `--log-level` option.
+    Valid options are 'debug', 'verbose', 'info', 'warn', and 'error'.
 
 ## Credits
 
