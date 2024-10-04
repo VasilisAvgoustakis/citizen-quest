@@ -1,17 +1,27 @@
+/* eslint-disable class-methods-use-this,no-unused-vars */
 class PlayerAppState {
   constructor(playerApp) {
     this.playerApp = playerApp;
     this.state = null;
   }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
   onEnter(fromState) { }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
   onExit(toState) { }
 
-  // eslint-disable-next-line class-methods-use-this
+  onRoundState(state) { }
+
+  onSessionStart() { }
+
+  onSessionEnd() { }
+
+  onRoundStart() { }
+
+  onRoundEnd() { }
+
   onAction() { }
+
+  onTimeout() { }
 }
 
 module.exports = PlayerAppState;

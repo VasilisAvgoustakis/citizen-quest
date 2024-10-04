@@ -7,12 +7,12 @@ const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const { getApiServerUrl, getSocketServerUrl } = require('./lib/net/server-url');
 const { initSentry } = require('./lib/helpers/sentry');
 const MapApp = require('./lib/app/map-app');
-const configureLogger = require('./lib/helpers/configure-logger');
+const { configureLogger } = require('./lib/helpers/configure-logger');
 
 (async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const statsPanel = urlParams.get('s') || null;
-    const configUrl = `${getApiServerUrl()}config`;
+  const urlParams = new URLSearchParams(window.location.search);
+  const statsPanel = urlParams.get('s') || null;
+  const configUrl = `${getApiServerUrl()}config`;
   const logLevel = urlParams.get('log') || 'warn';
   const logger = configureLogger({ level: logLevel });
 

@@ -1,5 +1,5 @@
 const PlayerAppState = require('./player-app-state');
-const { PLAYING } = require('./states');
+const { PLAYING, ENDING } = require('./states');
 
 class PlayerAppPlayingState extends PlayerAppState {
   constructor(playerApp) {
@@ -8,34 +8,38 @@ class PlayerAppPlayingState extends PlayerAppState {
   }
 
   onEnter() {
+    super.onEnter();
     this.playerApp.gameView.cameraFollowPc();
     this.playerApp.showNpcMoods();
-    this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    this.playerApp.inputRouter.routeToPcMovement(this.playerApp);
     this.playerApp.roundTimer.start();
     this.playerApp.playerOverlayMgr.countdown.show();
     this.playerApp.playerOverlayMgr.showDefaultPrompt();
-    const introText = this.playerApp.questTracker.activeStoryline.prompt;
-    const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
-    this.playerApp.playerOverlayMgr.showIntroScreen(introText, inclusions);
-  }
-
-  onAction() {
-    if (this.playerApp.playerOverlayMgr?.introScreen?.revealStarted) {
-      if (!this.playerApp.playerOverlayMgr.introScreen.isTextRevealed()) {
-        this.playerApp.playerOverlayMgr.introScreen.revealText();
-      } else {
-        this.playerApp.playerOverlayMgr.hideIntroScreen();
-        this.playerApp.inputRouter.routeToPcMovement(this.playerApp);
-      }
-    }
   }
 
   onExit() {
+    super.onExit();
     this.playerApp.dialogueSequencer.terminate();
     this.playerApp.hideNpcMoods();
     this.playerApp.playerOverlayMgr.questOverlay.hide();
     this.playerApp.playerOverlayMgr.countdown.hide();
-    this.playerApp.playerOverlayMgr.hideIntroScreen();
+  }
+
+  onRoundState() {
+    super.onRoundState();
+    if (!this.playerApp.isRoundInProgress()) {
+      this.playerApp.setState(ENDING);
+    }
+  }
+
+  onSessionEnd() {
+    super.onSessionEnd();
+    this.playerApp.setState(ENDING);
+  }
+
+  onRoundEnd() {
+    super.onRoundEnd();
+    this.playerApp.setState(ENDING);
   }
 }
 

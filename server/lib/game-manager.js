@@ -131,26 +131,6 @@ class GameManager {
     return this.stateHandler;
   }
 
-  getDeprecatedStateName() {
-    const state = (this.stateHandler && this.stateHandler.state) || null;
-    if (state) {
-      switch (state) {
-        case GameManagerStates.IDLE:
-          return 'idle';
-        case GameManagerStates.ROUND_STARTING:
-          return 'intro';
-        case GameManagerStates.ROUND_IN_PROGRESS:
-          return 'playing';
-        case GameManagerStates.ROUND_COMPLETED:
-          return 'ending';
-        default:
-          throw new Error(`Unknown state ${state}`);
-      }
-    }
-
-    return null;
-  }
-
   /**
    * Set the current game stateHandler.
    *
@@ -187,6 +167,7 @@ class GameManager {
 
   setStateTimeout(duration) {
     this.stateTimeout = setTimeout(() => {
+      logger.verbose(`State '${this.stateHandler.state}' timed out after ${duration}ms`);
       this.stateHandler.onTimeout();
     }, duration);
   }

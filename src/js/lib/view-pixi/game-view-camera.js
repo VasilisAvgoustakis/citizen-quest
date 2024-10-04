@@ -98,7 +98,8 @@ class GameViewCamera {
    * the target.
    */
   update() {
-    if (this.target) {
+    // eslint-disable-next-line no-underscore-dangle
+    if (this.target && !this.target._destroyed) {
       // Set the pivot but maintain the camera within the bounds of the view
       this.display.pivot.set(
         Math.max(

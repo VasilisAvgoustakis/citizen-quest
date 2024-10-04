@@ -89,6 +89,7 @@ configuration key is not set to `false`:
 All the previous ones, plus the following keyboard shortcuts are available in the player app if the 
 `game.devModeShortcuts` configuration key is not set to `false`:
 
+- 'c': Change the console log level. Each press of 'l' toggles to a different level.
 - 'd': Toggle stats panel. Each press of 'd' toggles to a different panel.
 - 'f': Dumps flags to the javascript console.
 - 'h': Shows hitboxes.

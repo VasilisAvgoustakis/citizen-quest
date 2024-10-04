@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 /* globals PIXI */
+const logger = require('loglevel');
 const PlayerAppStates = require('./player-app-states/states');
 const getHandler = require('./player-app-states/get-handler');
 const Stats = require('../helpers-web/stats/stats');
@@ -21,6 +22,8 @@ const DialogueIteratorContext = require('../model/dialogues/dialogue-iterator-co
 const DialogueEffectFactory = require('../model/dialogues/effects/dialogue-effect-factory');
 require('../model/dialogues/effects/dialogue-effect-init');
 const HintManager = require('../model/hint-manager');
+const { rotateLogLevel } = require('../helpers/configure-logger');
+
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -221,6 +224,9 @@ class PlayerApp {
       keyboardInputMgr.addToggle('KeyH', () => {
         this.gameView.toggleHitboxDisplay();
       });
+      keyboardInputMgr.addToggle('KeyC', () => {
+        rotateLogLevel();
+      });
       keyboardInputMgr.addToggle('KeyS', () => {
         this.gameView.toggleSceneryTransparency();
       });
@@ -261,7 +267,6 @@ class PlayerApp {
   }
 
   resetGameState() {
-    this.setState(PlayerAppStates.IDLE);
     this.questTracker.setActiveStoryline(this.storylineId);
     this.dialogueIteratorContext.clearState();
     this.seenFlags = {};
@@ -269,6 +274,10 @@ class PlayerApp {
 
   getState() {
     return (this.stateHandler && this.stateHandler.state) || null;
+  }
+
+  getStateHandler() {
+    return this.stateHandler ?? null;
   }
 
   setState(state) {
@@ -281,19 +290,44 @@ class PlayerApp {
       return;
     }
 
+    this.clearStateTimeout();
     const fromState = this.getState();
     const newHandler = getHandler(this, state);
 
     if (this.stateHandler) {
       this.stateHandler.onExit(state);
     }
+    logger.info(`State change: ${fromState} -> ${state}`);
     this.stateHandler = newHandler;
     if (this.stateHandler) {
       this.stateHandler.onEnter(fromState);
     }
   }
 
+  setStateTimeout(duration) {
+    this.stateTimeout = setTimeout(() => {
+      logger.info(`State '${this.stateHandler.state}' timeout after ${duration}ms`);
+      this.stateHandler.onTimeout();
+    }, duration);
+  }
+
+  clearStateTimeout() {
+    if (this.stateTimeout) {
+      clearTimeout(this.stateTimeout);
+      this.stateTimeout = null;
+    }
+  }
+
+  isRoundInProgress() {
+    return this.gameServerController?.isRoundInProgress() ?? false;
+  }
+
+  isRoundCompleted() {
+    return this.gameServerController?.isRoundCompleted() ?? false;
+  }
+
   setLanguage(lang) {
+    logger.info(`Setting language to ${lang}`);
     this.lang = lang;
     this.playerOverlayMgr.setLang(lang);
   }
@@ -308,14 +342,25 @@ class PlayerApp {
   }
 
   addPc() {
+    logger.info(`Adding PC (id=${this.playerId})`);
     this.pc = new Character(this.playerId, this.config.players[this.playerId]);
     this.gameView.addPc(this.pc);
     this.gameView.cameraFollowPc();
   }
 
   removePc() {
+    logger.info('Removing PC');
+    this.gameView.cameraStop();
     this.gameView.removePc();
     this.pc = null;
+  }
+
+  hasPc() {
+    return this.pc !== null;
+  }
+
+  getPc() {
+    return this.pc;
   }
 
   enablePcControl() {
@@ -388,9 +433,25 @@ class PlayerApp {
     this.stateHandler.onAction();
   }
 
-  playerStart() {
+  startSession() {
     if (this.gameServerController) {
-      this.gameServerController.playerStart();
+      this.gameServerController.startSession();
+    }
+  }
+
+  endSession() {
+    if (this.gameServerController) {
+      this.gameServerController.endSession();
+    }
+  }
+
+  isSessionActive() {
+    return this.gameServerController?.isSessionActive() ?? false;
+  }
+
+  playerReady() {
+    if (this.gameServerController) {
+      this.gameServerController.playerReady();
     }
   }
 

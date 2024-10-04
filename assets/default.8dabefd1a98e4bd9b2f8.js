@@ -42784,6 +42784,373 @@ module.exports = localforage_js;
 
 /***/ }),
 
+/***/ "./node_modules/loglevel/lib/loglevel.js":
+/*!***********************************************!*\
+  !*** ./node_modules/loglevel/lib/loglevel.js ***!
+  \***********************************************/
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
+* loglevel - https://github.com/pimterry/loglevel
+*
+* Copyright (c) 2013 Tim Perry
+* Licensed under the MIT license.
+*/
+(function (root, definition) {
+    "use strict";
+    if (true) {
+        !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition),
+		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+		(__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) :
+		__WEBPACK_AMD_DEFINE_FACTORY__),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+    } else {}
+}(this, function () {
+    "use strict";
+
+    // Slightly dubious tricks to cut down minimized file size
+    var noop = function() {};
+    var undefinedType = "undefined";
+    var isIE = (typeof window !== undefinedType) && (typeof window.navigator !== undefinedType) && (
+        /Trident\/|MSIE /.test(window.navigator.userAgent)
+    );
+
+    var logMethods = [
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error"
+    ];
+
+    var _loggersByName = {};
+    var defaultLogger = null;
+
+    // Cross-browser bind equivalent that works at least back to IE6
+    function bindMethod(obj, methodName) {
+        var method = obj[methodName];
+        if (typeof method.bind === 'function') {
+            return method.bind(obj);
+        } else {
+            try {
+                return Function.prototype.bind.call(method, obj);
+            } catch (e) {
+                // Missing bind shim or IE8 + Modernizr, fallback to wrapping
+                return function() {
+                    return Function.prototype.apply.apply(method, [obj, arguments]);
+                };
+            }
+        }
+    }
+
+    // Trace() doesn't print the message in IE, so for that case we need to wrap it
+    function traceForIE() {
+        if (console.log) {
+            if (console.log.apply) {
+                console.log.apply(console, arguments);
+            } else {
+                // In old IE, native console methods themselves don't have apply().
+                Function.prototype.apply.apply(console.log, [console, arguments]);
+            }
+        }
+        if (console.trace) console.trace();
+    }
+
+    // Build the best logging method possible for this env
+    // Wherever possible we want to bind, not wrap, to preserve stack traces
+    function realMethod(methodName) {
+        if (methodName === 'debug') {
+            methodName = 'log';
+        }
+
+        if (typeof console === undefinedType) {
+            return false; // No method possible, for now - fixed later by enableLoggingWhenConsoleArrives
+        } else if (methodName === 'trace' && isIE) {
+            return traceForIE;
+        } else if (console[methodName] !== undefined) {
+            return bindMethod(console, methodName);
+        } else if (console.log !== undefined) {
+            return bindMethod(console, 'log');
+        } else {
+            return noop;
+        }
+    }
+
+    // These private functions always need `this` to be set properly
+
+    function replaceLoggingMethods() {
+        /*jshint validthis:true */
+        var level = this.getLevel();
+
+        // Replace the actual methods.
+        for (var i = 0; i < logMethods.length; i++) {
+            var methodName = logMethods[i];
+            this[methodName] = (i < level) ?
+                noop :
+                this.methodFactory(methodName, level, this.name);
+        }
+
+        // Define log.log as an alias for log.debug
+        this.log = this.debug;
+
+        // Return any important warnings.
+        if (typeof console === undefinedType && level < this.levels.SILENT) {
+            return "No console available for logging";
+        }
+    }
+
+    // In old IE versions, the console isn't present until you first open it.
+    // We build realMethod() replacements here that regenerate logging methods
+    function enableLoggingWhenConsoleArrives(methodName) {
+        return function () {
+            if (typeof console !== undefinedType) {
+                replaceLoggingMethods.call(this);
+                this[methodName].apply(this, arguments);
+            }
+        };
+    }
+
+    // By default, we use closely bound real methods wherever possible, and
+    // otherwise we wait for a console to appear, and then try again.
+    function defaultMethodFactory(methodName, _level, _loggerName) {
+        /*jshint validthis:true */
+        return realMethod(methodName) ||
+               enableLoggingWhenConsoleArrives.apply(this, arguments);
+    }
+
+    function Logger(name, factory) {
+      // Private instance variables.
+      var self = this;
+      /**
+       * The level inherited from a parent logger (or a global default). We
+       * cache this here rather than delegating to the parent so that it stays
+       * in sync with the actual logging methods that we have installed (the
+       * parent could change levels but we might not have rebuilt the loggers
+       * in this child yet).
+       * @type {number}
+       */
+      var inheritedLevel;
+      /**
+       * The default level for this logger, if any. If set, this overrides
+       * `inheritedLevel`.
+       * @type {number|null}
+       */
+      var defaultLevel;
+      /**
+       * A user-specific level for this logger. If set, this overrides
+       * `defaultLevel`.
+       * @type {number|null}
+       */
+      var userLevel;
+
+      var storageKey = "loglevel";
+      if (typeof name === "string") {
+        storageKey += ":" + name;
+      } else if (typeof name === "symbol") {
+        storageKey = undefined;
+      }
+
+      function persistLevelIfPossible(levelNum) {
+          var levelName = (logMethods[levelNum] || 'silent').toUpperCase();
+
+          if (typeof window === undefinedType || !storageKey) return;
+
+          // Use localStorage if available
+          try {
+              window.localStorage[storageKey] = levelName;
+              return;
+          } catch (ignore) {}
+
+          // Use session cookie as fallback
+          try {
+              window.document.cookie =
+                encodeURIComponent(storageKey) + "=" + levelName + ";";
+          } catch (ignore) {}
+      }
+
+      function getPersistedLevel() {
+          var storedLevel;
+
+          if (typeof window === undefinedType || !storageKey) return;
+
+          try {
+              storedLevel = window.localStorage[storageKey];
+          } catch (ignore) {}
+
+          // Fallback to cookies if local storage gives us nothing
+          if (typeof storedLevel === undefinedType) {
+              try {
+                  var cookie = window.document.cookie;
+                  var cookieName = encodeURIComponent(storageKey);
+                  var location = cookie.indexOf(cookieName + "=");
+                  if (location !== -1) {
+                      storedLevel = /^([^;]+)/.exec(
+                          cookie.slice(location + cookieName.length + 1)
+                      )[1];
+                  }
+              } catch (ignore) {}
+          }
+
+          // If the stored level is not valid, treat it as if nothing was stored.
+          if (self.levels[storedLevel] === undefined) {
+              storedLevel = undefined;
+          }
+
+          return storedLevel;
+      }
+
+      function clearPersistedLevel() {
+          if (typeof window === undefinedType || !storageKey) return;
+
+          // Use localStorage if available
+          try {
+              window.localStorage.removeItem(storageKey);
+          } catch (ignore) {}
+
+          // Use session cookie as fallback
+          try {
+              window.document.cookie =
+                encodeURIComponent(storageKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+          } catch (ignore) {}
+      }
+
+      function normalizeLevel(input) {
+          var level = input;
+          if (typeof level === "string" && self.levels[level.toUpperCase()] !== undefined) {
+              level = self.levels[level.toUpperCase()];
+          }
+          if (typeof level === "number" && level >= 0 && level <= self.levels.SILENT) {
+              return level;
+          } else {
+              throw new TypeError("log.setLevel() called with invalid level: " + input);
+          }
+      }
+
+      /*
+       *
+       * Public logger API - see https://github.com/pimterry/loglevel for details
+       *
+       */
+
+      self.name = name;
+
+      self.levels = { "TRACE": 0, "DEBUG": 1, "INFO": 2, "WARN": 3,
+          "ERROR": 4, "SILENT": 5};
+
+      self.methodFactory = factory || defaultMethodFactory;
+
+      self.getLevel = function () {
+          if (userLevel != null) {
+            return userLevel;
+          } else if (defaultLevel != null) {
+            return defaultLevel;
+          } else {
+            return inheritedLevel;
+          }
+      };
+
+      self.setLevel = function (level, persist) {
+          userLevel = normalizeLevel(level);
+          if (persist !== false) {  // defaults to true
+              persistLevelIfPossible(userLevel);
+          }
+
+          // NOTE: in v2, this should call rebuild(), which updates children.
+          return replaceLoggingMethods.call(self);
+      };
+
+      self.setDefaultLevel = function (level) {
+          defaultLevel = normalizeLevel(level);
+          if (!getPersistedLevel()) {
+              self.setLevel(level, false);
+          }
+      };
+
+      self.resetLevel = function () {
+          userLevel = null;
+          clearPersistedLevel();
+          replaceLoggingMethods.call(self);
+      };
+
+      self.enableAll = function(persist) {
+          self.setLevel(self.levels.TRACE, persist);
+      };
+
+      self.disableAll = function(persist) {
+          self.setLevel(self.levels.SILENT, persist);
+      };
+
+      self.rebuild = function () {
+          if (defaultLogger !== self) {
+              inheritedLevel = normalizeLevel(defaultLogger.getLevel());
+          }
+          replaceLoggingMethods.call(self);
+
+          if (defaultLogger === self) {
+              for (var childName in _loggersByName) {
+                _loggersByName[childName].rebuild();
+              }
+          }
+      };
+
+      // Initialize all the internal levels.
+      inheritedLevel = normalizeLevel(
+          defaultLogger ? defaultLogger.getLevel() : "WARN"
+      );
+      var initialLevel = getPersistedLevel();
+      if (initialLevel != null) {
+          userLevel = normalizeLevel(initialLevel);
+      }
+      replaceLoggingMethods.call(self);
+    }
+
+    /*
+     *
+     * Top-level API
+     *
+     */
+
+    defaultLogger = new Logger();
+
+    defaultLogger.getLogger = function getLogger(name) {
+        if ((typeof name !== "symbol" && typeof name !== "string") || name === "") {
+            throw new TypeError("You must supply a name when creating a logger.");
+        }
+
+        var logger = _loggersByName[name];
+        if (!logger) {
+            logger = _loggersByName[name] = new Logger(
+                name,
+                defaultLogger.methodFactory
+            );
+        }
+        return logger;
+    };
+
+    // Grab the current global log variable in case of overwrite
+    var _log = (typeof window !== undefinedType) ? window.log : undefined;
+    defaultLogger.noConflict = function() {
+        if (typeof window !== undefinedType &&
+               window.log === defaultLogger) {
+            window.log = _log;
+        }
+
+        return defaultLogger;
+    };
+
+    defaultLogger.getLoggers = function getLoggers() {
+        return _loggersByName;
+    };
+
+    // ES6 default export, for compatibility
+    defaultLogger['default'] = defaultLogger;
+
+    return defaultLogger;
+}));
+
+
+/***/ }),
+
 /***/ "./src/sass/default.scss":
 /*!*******************************!*\
   !*** ./src/sass/default.scss ***!
@@ -44341,7 +44708,7 @@ module.exports = LocalGameServerController;
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
-const { ENDING, IDLE } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+const { ENDING, RESET } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
 
 class PlayerAppEndingState extends PlayerAppState {
   constructor(playerApp) {
@@ -44349,48 +44716,42 @@ class PlayerAppEndingState extends PlayerAppState {
     this.state = ENDING;
   }
 
-  showWaitingToBeginScreen() {
-    this.playerApp.playerOverlayMgr.showTextScreen(
-      this.playerApp.config.i18n.ui.waitingToBegin
-    );
-  }
-
-  showWaitingToEndScreen() {
-    this.playerApp.playerOverlayMgr.showTextScreen(
-      this.playerApp.config.i18n.ui.waitingToEnd
-    );
-  }
-
   onEnter(fromState) {
-    this.playerApp.gameView.cameraFollowPc();
-    if (fromState !== IDLE) {
-      this.playerApp.inputRouter.routeToMenus(this.playerApp);
-      const [endingText, classes] = this.playerApp.getCurrentEnding();
-      const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
-      this.playerApp.playerOverlayMgr.showEndingScreen(endingText, classes, inclusions);
-    } else {
-      this.playerApp.inputRouter.unroute();
-      this.showWaitingToBeginScreen();
-      this.playerApp.gameServerController.playerReady();
+    super.onEnter(fromState);
+    this.playerApp.gameView.cameraStop();
+    this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    const [endingText, classes] = this.playerApp.getCurrentEnding();
+    const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
+    this.playerApp.playerOverlayMgr.showEndingScreen(endingText, classes, inclusions);
+    if (this.playerApp.config?.game?.endingTimeout) {
+      this.playerApp.setStateTimeout(this.playerApp.config.game.endingTimeout * 1000);
     }
   }
 
   onExit() {
     super.onExit();
     this.playerApp.playerOverlayMgr.hideEndingScreen();
-    this.playerApp.playerOverlayMgr.hideTextScreen();
   }
 
   onAction() {
+    super.onAction();
+    // If the ending text has not been revealed, the action button will reveal it.
+    // Otherwise, the player will be allowed to end.
     if (this.playerApp.playerOverlayMgr?.endingScreen?.revealStarted) {
       if (!this.playerApp.playerOverlayMgr.endingScreen.isTextRevealed()) {
         this.playerApp.playerOverlayMgr.endingScreen.revealText();
       } else {
-        this.playerApp.playerOverlayMgr.hideEndingScreen();
-        this.showWaitingToEndScreen();
-        this.playerApp.gameServerController.playerReady();
+        if (this.playerApp.isRoundCompleted()) {
+          this.playerApp.playerReady();
+        }
+        this.playerApp.setState(RESET);
       }
     }
+  }
+
+  onTimeout() {
+    super.onTimeout();
+    this.playerApp.setState(RESET);
   }
 }
 
@@ -44406,20 +44767,28 @@ module.exports = PlayerAppEndingState;
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const {
+  RESET,
   IDLE,
+  QUEUED,
   INTRO,
   PLAYING,
   ENDING,
 } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+const PlayerAppResetState = __webpack_require__(/*! ./reset-state */ "./src/js/lib/app/player-app-states/reset-state.js");
 const PlayerAppIdleState = __webpack_require__(/*! ./idle-state */ "./src/js/lib/app/player-app-states/idle-state.js");
+const PlayerAppQueuedState = __webpack_require__(/*! ./queued-state */ "./src/js/lib/app/player-app-states/queued-state.js");
 const PlayerAppIntroState = __webpack_require__(/*! ./intro-state */ "./src/js/lib/app/player-app-states/intro-state.js");
 const PlayerAppPlayingState = __webpack_require__(/*! ./playing-state */ "./src/js/lib/app/player-app-states/playing-state.js");
 const PlayerAppEndingState = __webpack_require__(/*! ./ending-state */ "./src/js/lib/app/player-app-states/ending-state.js");
 
 function getHandler(playerApp, state) {
   switch (state) {
+    case RESET:
+      return new PlayerAppResetState(playerApp);
     case IDLE:
       return new PlayerAppIdleState(playerApp);
+    case QUEUED:
+      return new PlayerAppQueuedState(playerApp);
     case INTRO:
       return new PlayerAppIntroState(playerApp);
     case PLAYING:
@@ -44442,8 +44811,11 @@ module.exports = getHandler;
   \********************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
-const { IDLE } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+const {
+  IDLE, QUEUED, INTRO, ENDING
+} = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
 
 class PlayerAppIdleState extends PlayerAppState {
   constructor(playerApp) {
@@ -44452,16 +44824,29 @@ class PlayerAppIdleState extends PlayerAppState {
   }
 
   onEnter() {
+    super.onEnter();
+    if (this.playerApp.hasPc()) {
+      if (!this.playerApp.isRoundCompleted()) {
+        logger.warn('Entered Idle state with PC. Moving to INTRO state.');
+        this.playerApp.setState(INTRO);
+      } else {
+        logger.warn('Entered Idle state with PC. Moving to ENDING state.');
+        this.playerApp.setState(ENDING);
+      }
+    }
     this.playerApp.playerOverlayMgr.showTitleScreen();
     this.playerApp.gameView.cameraFollowDemoDrone();
     this.playerApp.inputRouter.routeToMenus(this.playerApp);
   }
 
   onAction() {
-    this.playerApp.playerStart();
+    super.onAction();
+    this.playerApp.startSession();
+    this.playerApp.setState(QUEUED);
   }
 
   onExit() {
+    super.onExit();
     this.playerApp.playerOverlayMgr.hideTitleScreen();
   }
 }
@@ -44478,17 +44863,82 @@ module.exports = PlayerAppIdleState;
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
-const { INTRO } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+const {
+  INTRO, PLAYING, ENDING, RESET,
+} = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
 
 class PlayerAppIntroState extends PlayerAppState {
   constructor(playerApp) {
     super(playerApp);
     this.state = INTRO;
+
+    this.pressedToStart = false;
+    this.timedOut = false;
   }
 
   onEnter() {
-    this.playerApp.gameView.cameraFollowPc();
+    super.onEnter();
+    this.playerApp.gameView.cameraStop();
     this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    const introText = this.playerApp.questTracker.activeStoryline.prompt;
+    const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
+    this.playerApp.playerOverlayMgr.showIntroScreen(introText, inclusions);
+    if (this.playerApp.config?.game?.introTimeout) {
+      this.playerApp.setStateTimeout(this.playerApp.config.game.introTimeout * 1000);
+    }
+  }
+
+  onExit() {
+    super.onExit();
+    this.playerApp.playerOverlayMgr.hideIntroScreen();
+  }
+
+  onAction() {
+    super.onAction();
+    // If the intro text has not been revealed, the action button will reveal it.
+    // Otherwise, the player will be allowed to start
+    if (this.playerApp.playerOverlayMgr?.introScreen?.revealStarted) {
+      if (!this.playerApp.playerOverlayMgr.introScreen.isTextRevealed()) {
+        this.playerApp.playerOverlayMgr.introScreen.revealText();
+      } else {
+        // Play can begin if the round started and the button has been pressed
+        this.pressedToStart = true;
+        if (this.playerApp.isRoundInProgress()) {
+          this.playerApp.setState(PLAYING);
+        } else {
+          this.playerApp.playerReady();
+        }
+      }
+    }
+  }
+
+  onRoundState(state) {
+    super.onRoundState(state);
+    if (this.playerApp.isRoundCompleted()) {
+      this.playerApp.setState(ENDING);
+      return;
+    }
+    if (this.playerApp.isRoundInProgress() && (this.pressedToStart || this.timedOut)) {
+      this.playerApp.setState(PLAYING);
+    }
+  }
+
+  onSessionEnd() {
+    super.onSessionEnd();
+    this.playerApp.setState(ENDING);
+  }
+
+  onRoundEnd() {
+    super.onRoundEnd();
+    this.playerApp.setState(ENDING);
+  }
+
+  onTimeout() {
+    super.onTimeout();
+    this.timedOut = true;
+    if (this.playerApp.isRoundInProgress()) {
+      this.playerApp.setState(PLAYING);
+    }
   }
 }
 
@@ -44503,20 +44953,30 @@ module.exports = PlayerAppIntroState;
   \**************************************************************/
 /***/ ((module) => {
 
+/* eslint-disable class-methods-use-this,no-unused-vars */
 class PlayerAppState {
   constructor(playerApp) {
     this.playerApp = playerApp;
     this.state = null;
   }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
   onEnter(fromState) { }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
   onExit(toState) { }
 
-  // eslint-disable-next-line class-methods-use-this
+  onRoundState(state) { }
+
+  onSessionStart() { }
+
+  onSessionEnd() { }
+
+  onRoundStart() { }
+
+  onRoundEnd() { }
+
   onAction() { }
+
+  onTimeout() { }
 }
 
 module.exports = PlayerAppState;
@@ -44531,7 +44991,7 @@ module.exports = PlayerAppState;
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
-const { PLAYING } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+const { PLAYING, ENDING } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
 
 class PlayerAppPlayingState extends PlayerAppState {
   constructor(playerApp) {
@@ -44540,38 +45000,154 @@ class PlayerAppPlayingState extends PlayerAppState {
   }
 
   onEnter() {
+    super.onEnter();
     this.playerApp.gameView.cameraFollowPc();
     this.playerApp.showNpcMoods();
-    this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    this.playerApp.inputRouter.routeToPcMovement(this.playerApp);
     this.playerApp.roundTimer.start();
     this.playerApp.playerOverlayMgr.countdown.show();
     this.playerApp.playerOverlayMgr.showDefaultPrompt();
-    const introText = this.playerApp.questTracker.activeStoryline.prompt;
-    const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
-    this.playerApp.playerOverlayMgr.showIntroScreen(introText, inclusions);
-  }
-
-  onAction() {
-    if (this.playerApp.playerOverlayMgr?.introScreen?.revealStarted) {
-      if (!this.playerApp.playerOverlayMgr.introScreen.isTextRevealed()) {
-        this.playerApp.playerOverlayMgr.introScreen.revealText();
-      } else {
-        this.playerApp.playerOverlayMgr.hideIntroScreen();
-        this.playerApp.inputRouter.routeToPcMovement(this.playerApp);
-      }
-    }
   }
 
   onExit() {
+    super.onExit();
     this.playerApp.dialogueSequencer.terminate();
     this.playerApp.hideNpcMoods();
     this.playerApp.playerOverlayMgr.questOverlay.hide();
     this.playerApp.playerOverlayMgr.countdown.hide();
-    this.playerApp.playerOverlayMgr.hideIntroScreen();
+  }
+
+  onRoundState() {
+    super.onRoundState();
+    if (!this.playerApp.isRoundInProgress()) {
+      this.playerApp.setState(ENDING);
+    }
+  }
+
+  onSessionEnd() {
+    super.onSessionEnd();
+    this.playerApp.setState(ENDING);
+  }
+
+  onRoundEnd() {
+    super.onRoundEnd();
+    this.playerApp.setState(ENDING);
   }
 }
 
 module.exports = PlayerAppPlayingState;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/app/player-app-states/queued-state.js":
+/*!**********************************************************!*\
+  !*** ./src/js/lib/app/player-app-states/queued-state.js ***!
+  \**********************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
+const { QUEUED, INTRO } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+
+class PlayerAppQueuedState extends PlayerAppState {
+  constructor(playerApp) {
+    super(playerApp);
+    this.state = QUEUED;
+  }
+
+  onEnter() {
+    super.onEnter();
+    this.playerApp.gameView.cameraStop();
+    this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    if (this.playerApp.isRoundCompleted()) {
+      this.showWaitingToBeginScreen();
+    } else if (this.playerApp.hasPc()) {
+      this.playerApp.setState(INTRO);
+    }
+  }
+
+  onSessionStart() {
+    super.onSessionStart();
+    this.playerApp.setState(INTRO);
+  }
+
+  showWaitingToBeginScreen() {
+    this.playerApp.playerOverlayMgr.showTextScreen(
+      this.playerApp.config.i18n.ui.waitingToBegin
+    );
+  }
+
+  onExit(toState) {
+    super.onExit(toState);
+    this.playerApp.playerOverlayMgr.hideTextScreen();
+  }
+}
+
+module.exports = PlayerAppQueuedState;
+
+
+/***/ }),
+
+/***/ "./src/js/lib/app/player-app-states/reset-state.js":
+/*!*********************************************************!*\
+  !*** ./src/js/lib/app/player-app-states/reset-state.js ***!
+  \*********************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const PlayerAppState = __webpack_require__(/*! ./player-app-state */ "./src/js/lib/app/player-app-states/player-app-state.js");
+const { IDLE, RESET } = __webpack_require__(/*! ./states */ "./src/js/lib/app/player-app-states/states.js");
+
+class PlayerAppResetState extends PlayerAppState {
+  constructor(playerApp) {
+    super(playerApp);
+    this.state = RESET;
+    this.checkedSession = false;
+  }
+
+  onEnter() {
+    super.onEnter();
+    this.showWaitingToEndScreen();
+    this.playerApp.gameView.cameraStop();
+  }
+
+  onExit() {
+    super.onExit();
+    this.playerApp.playerOverlayMgr.hideTextScreen();
+  }
+
+  onSessionStart() {
+    super.onSessionStart();
+    this.playerApp.endSession();
+  }
+
+  onSessionEnd() {
+    super.onSessionEnd();
+    this.playerApp.setState(IDLE);
+  }
+
+  onRoundState(state) {
+    super.onRoundState(state);
+    // On first starting the app, it's possible the server has a stale session.
+    // We wait until this handler is called (which happens on a sync message)
+    // and check whether a session exists. Otherwise, we can proceed to IDLE.
+    if (!this.checkedSession) {
+      this.checkedSession = true;
+      if (this.playerApp.isSessionActive()) {
+        this.playerApp.endSession();
+      } else {
+        this.playerApp.setState(IDLE);
+      }
+    }
+  }
+
+  showWaitingToEndScreen() {
+    this.playerApp.playerOverlayMgr.showTextScreen(
+      this.playerApp.config.i18n.ui.waitingToEnd
+    );
+  }
+}
+
+module.exports = PlayerAppResetState;
 
 
 /***/ }),
@@ -44583,7 +45159,9 @@ module.exports = PlayerAppPlayingState;
 /***/ ((module) => {
 
 const PlayerAppStates = {
+  RESET: 'reset',
   IDLE: 'idle',
+  QUEUED: 'queued',
   INTRO: 'intro',
   PLAYING: 'playing',
   ENDING: 'ending',
@@ -44602,6 +45180,7 @@ module.exports = PlayerAppStates;
 
 /* eslint-disable no-console */
 /* globals PIXI */
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 const PlayerAppStates = __webpack_require__(/*! ./player-app-states/states */ "./src/js/lib/app/player-app-states/states.js");
 const getHandler = __webpack_require__(/*! ./player-app-states/get-handler */ "./src/js/lib/app/player-app-states/get-handler.js");
 const Stats = __webpack_require__(/*! ../helpers-web/stats/stats */ "./src/js/lib/helpers-web/stats/stats.js");
@@ -44623,6 +45202,8 @@ const DialogueIteratorContext = __webpack_require__(/*! ../model/dialogues/dialo
 const DialogueEffectFactory = __webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-factory */ "./src/js/lib/model/dialogues/effects/dialogue-effect-factory.js");
 __webpack_require__(/*! ../model/dialogues/effects/dialogue-effect-init */ "./src/js/lib/model/dialogues/effects/dialogue-effect-init.js");
 const HintManager = __webpack_require__(/*! ../model/hint-manager */ "./src/js/lib/model/hint-manager.js");
+const { rotateLogLevel } = __webpack_require__(/*! ../helpers/configure-logger */ "./src/js/lib/helpers/configure-logger.js");
+
 
 class PlayerApp {
   constructor(config, textures, playerId) {
@@ -44823,6 +45404,9 @@ class PlayerApp {
       keyboardInputMgr.addToggle('KeyH', () => {
         this.gameView.toggleHitboxDisplay();
       });
+      keyboardInputMgr.addToggle('KeyC', () => {
+        rotateLogLevel();
+      });
       keyboardInputMgr.addToggle('KeyS', () => {
         this.gameView.toggleSceneryTransparency();
       });
@@ -44863,7 +45447,6 @@ class PlayerApp {
   }
 
   resetGameState() {
-    this.setState(PlayerAppStates.IDLE);
     this.questTracker.setActiveStoryline(this.storylineId);
     this.dialogueIteratorContext.clearState();
     this.seenFlags = {};
@@ -44871,6 +45454,10 @@ class PlayerApp {
 
   getState() {
     return (this.stateHandler && this.stateHandler.state) || null;
+  }
+
+  getStateHandler() {
+    return this.stateHandler ?? null;
   }
 
   setState(state) {
@@ -44883,19 +45470,44 @@ class PlayerApp {
       return;
     }
 
+    this.clearStateTimeout();
     const fromState = this.getState();
     const newHandler = getHandler(this, state);
 
     if (this.stateHandler) {
       this.stateHandler.onExit(state);
     }
+    logger.info(`State change: ${fromState} -> ${state}`);
     this.stateHandler = newHandler;
     if (this.stateHandler) {
       this.stateHandler.onEnter(fromState);
     }
   }
 
+  setStateTimeout(duration) {
+    this.stateTimeout = setTimeout(() => {
+      logger.info(`State '${this.stateHandler.state}' timeout after ${duration}ms`);
+      this.stateHandler.onTimeout();
+    }, duration);
+  }
+
+  clearStateTimeout() {
+    if (this.stateTimeout) {
+      clearTimeout(this.stateTimeout);
+      this.stateTimeout = null;
+    }
+  }
+
+  isRoundInProgress() {
+    return this.gameServerController?.isRoundInProgress() ?? false;
+  }
+
+  isRoundCompleted() {
+    return this.gameServerController?.isRoundCompleted() ?? false;
+  }
+
   setLanguage(lang) {
+    logger.info(`Setting language to ${lang}`);
     this.lang = lang;
     this.playerOverlayMgr.setLang(lang);
   }
@@ -44910,14 +45522,25 @@ class PlayerApp {
   }
 
   addPc() {
+    logger.info(`Adding PC (id=${this.playerId})`);
     this.pc = new Character(this.playerId, this.config.players[this.playerId]);
     this.gameView.addPc(this.pc);
     this.gameView.cameraFollowPc();
   }
 
   removePc() {
+    logger.info('Removing PC');
+    this.gameView.cameraStop();
     this.gameView.removePc();
     this.pc = null;
+  }
+
+  hasPc() {
+    return this.pc !== null;
+  }
+
+  getPc() {
+    return this.pc;
   }
 
   enablePcControl() {
@@ -44990,9 +45613,25 @@ class PlayerApp {
     this.stateHandler.onAction();
   }
 
-  playerStart() {
+  startSession() {
     if (this.gameServerController) {
-      this.gameServerController.playerStart();
+      this.gameServerController.startSession();
+    }
+  }
+
+  endSession() {
+    if (this.gameServerController) {
+      this.gameServerController.endSession();
+    }
+  }
+
+  isSessionActive() {
+    return this.gameServerController?.isSessionActive() ?? false;
+  }
+
+  playerReady() {
+    if (this.gameServerController) {
+      this.gameServerController.playerReady();
     }
   }
 
@@ -45686,6 +46325,44 @@ module.exports = BitVector;
 
 /***/ }),
 
+/***/ "./src/js/lib/helpers/configure-logger.js":
+/*!************************************************!*\
+  !*** ./src/js/lib/helpers/configure-logger.js ***!
+  \************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
+
+function configureLogger(options) {
+  logger.setLevel(options.level);
+
+  return logger;
+}
+
+function rotateLogLevel() {
+  const levels = ['info', 'debug', 'warn'];
+  const levelMap = {
+    0: 'debug', // 'trace' level mapped to 'debug'
+    1: 'debug',
+    2: 'info',
+    3: 'warn',
+    4: 'warn', // 'error' level mapped to 'warn'
+    5: 'warn', // 'silent' level mapped to 'warn'
+  };
+  const currentLevel = levelMap[logger.getLevel()];
+  const newLevel = levels[(levels.indexOf(currentLevel) + 1) % (levels.length)];
+  logger.setLevel(newLevel);
+  console.log(`Log level set to ${newLevel}`);
+}
+
+module.exports = {
+  configureLogger,
+  rotateLogLevel,
+};
+
+
+/***/ }),
+
 /***/ "./src/js/lib/helpers/emoji-utils.js":
 /*!*******************************************!*\
   !*** ./src/js/lib/helpers/emoji-utils.js ***!
@@ -46044,9 +46721,8 @@ module.exports = PcMovementConnection;
   \***********************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-/* eslint-disable no-console */
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 const deepmerge = __webpack_require__(/*! deepmerge */ "./node_modules/deepmerge/dist/cjs.js");
-
 const InputMgr = __webpack_require__(/*! ./input-mgr */ "./src/js/lib/input/input-mgr.js");
 const GamepadMapper = __webpack_require__(/*! ./gamepad-mapper */ "./src/js/lib/input/gamepad-mapper.js");
 
@@ -46098,7 +46774,7 @@ class GamepadInputMgr extends InputMgr {
    */
   constructor(mapperConfig = {}) {
     super();
-    console.log(
+    logger.info(
       mapperConfig,
       deepmerge(standardMapperConfig, mapperConfig ?? {})
     );
@@ -46109,10 +46785,10 @@ class GamepadInputMgr extends InputMgr {
     this.handleGamepadDisConnected = () => {
       const gamepad = navigator.getGamepads().find((g) => g !== null);
       if (typeof gamepad !== 'undefined') {
-        console.log(`Using gamepad ${gamepad.index}: ${gamepad.id}`);
+        logger.info(`Using gamepad ${gamepad.index}: ${gamepad.id}`);
         this.gamepadIndex = gamepad.index;
       } else {
-        console.log('No gamepad connected');
+        logger.info('No gamepad connected');
         this.gamepadIndex = -1;
       }
     };
@@ -47258,8 +47934,8 @@ module.exports = DialogueIterator;
   \*************************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-/* eslint-disable no-console */
 const Dialogue = __webpack_require__(/*! ./dialogue */ "./src/js/lib/model/dialogues/dialogue.js");
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 
 function emptyDialogue(id) {
   return Dialogue.fromJson({
@@ -47273,7 +47949,7 @@ function emptyDialogue(id) {
 function safeBuildDialogueFromItems(id, items) {
   try {
     if (items.length === 0) {
-      console.error(`Dialogue with id ${id} has no items`);
+      logger.error(`Dialogue with id ${id} has no items`);
       return emptyDialogue(id);
     }
     return Dialogue.fromJson({
@@ -47287,7 +47963,7 @@ function safeBuildDialogueFromItems(id, items) {
       e.errors.forEach((error) => {
         errorText.push(`- ${error.instancePath} : ${error.message}`);
       });
-      console.error(errorText.join('\n'));
+      logger.error(errorText.join('\n'));
     }
     return emptyDialogue(id);
   }
@@ -47304,9 +47980,9 @@ module.exports = safeBuildDialogueFromItems;
   \******************************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-/* eslint-disable no-console */
 const Ajv = __webpack_require__(/*! ajv */ "./node_modules/ajv/dist/ajv.js");
 const schema = __webpack_require__(/*! ../../../../../specs/dialogue.schema.json */ "./specs/dialogue.schema.json");
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 
 function validateDialogueDefinition(dialogueDefinition) {
   if (!validateDialogueDefinition.validate) {
@@ -47315,7 +47991,7 @@ function validateDialogueDefinition(dialogueDefinition) {
   }
   const valid = validateDialogueDefinition.validate(dialogueDefinition);
   if (!valid) {
-    console.error('Error validating dialogue', validateDialogueDefinition.validate.errors);
+    logger.error('Error validating dialogue', validateDialogueDefinition.validate.errors);
     throw new Ajv.ValidationError(validateDialogueDefinition.validate.errors);
   }
   return true;
@@ -49716,6 +50392,7 @@ module.exports = DialogueOverlay;
   \*******************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 const imgPreload = __webpack_require__(/*! ../helpers-web/img-preload */ "./src/js/lib/helpers-web/img-preload.js");
 
 class ImageDisplayOverlay {
@@ -49766,7 +50443,7 @@ class ImageDisplayOverlay {
         return false;
       })
       .catch((err) => {
-        console.error(err);
+        logger.error(err);
       });
   }
 
@@ -50053,7 +50730,6 @@ class PlayerOverlayManager {
 
     this.titleOverlay = new TitleOverlay(this.config, this.lang);
     this.$element.append(this.titleOverlay.$element);
-    this.titleOverlay.show();
 
     $(window).on('resize', () => {
       this.handleResize();
@@ -51339,7 +52015,8 @@ class GameViewCamera {
    * the target.
    */
   update() {
-    if (this.target) {
+    // eslint-disable-next-line no-underscore-dangle
+    if (this.target && !this.target._destroyed) {
       // Set the pivot but maintain the camera within the bounds of the view
       this.display.pivot.set(
         Math.max(
@@ -51592,7 +52269,7 @@ class GameView {
   showDistractions() {
     this.targetArrow?.show();
   }
-f
+
   createDrone(options, x, y) {
     const newDrone = new Drone(options, x, y);
     this.drones.push(newDrone);
@@ -51604,6 +52281,10 @@ f
     if (index !== -1) {
       this.drones.splice(index, 1);
     }
+  }
+
+  cameraStop() {
+    this.camera.setTarget(null);
   }
 
   cameraFollowPc(instant = true) {
@@ -52492,7 +53173,6 @@ var __webpack_exports__ = {};
 /*!************************!*\
   !*** ./src/js/main.js ***!
   \************************/
-/* eslint-disable no-console */
 const yaml = __webpack_require__(/*! js-yaml */ "./node_modules/js-yaml/index.js");
 const CfgReaderFetch = __webpack_require__(/*! ./lib/loader/cfg-reader-fetch */ "./src/js/lib/loader/cfg-reader-fetch.js");
 const CfgLoader = __webpack_require__(/*! ./lib/loader/cfg-loader */ "./src/js/lib/loader/cfg-loader.js");
@@ -52506,20 +53186,24 @@ __webpack_require__(/*! ../sass/default.scss */ "./src/sass/default.scss");
 const fetchTextures = __webpack_require__(/*! ./lib/helpers-client/fetch-textures */ "./src/js/lib/helpers-client/fetch-textures.js");
 const StorylineManager = __webpack_require__(/*! ./lib/model/storyline-manager */ "./src/js/lib/model/storyline-manager.js");
 const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */ "./src/js/lib/loader/storyline-loader.js");
+const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logger */ "./src/js/lib/helpers/configure-logger.js");
 
 (async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const statsPanel = urlParams.get('s') || null;
+  const liveTest = urlParams.get('test') || null;
+  const storylineId = urlParams.get('storyline') || null;
+  const logLevel = urlParams.get('log') || 'warn';
+  const logger = configureLogger({ level: logLevel });
+
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const statsPanel = urlParams.get('s') || null;
-    const liveTest = urlParams.get('test') || null;
-    const storylineId = urlParams.get('storyline') || null;
     // Accept a settings url param but only if it's made of alphanumeric characters, _ or -, and
     // has a .yml extension.
     let settingsFilename = 'settings.yml';
     const settingsFileUnsafe = urlParams.get('settings');
     if (urlParams.get('settings')) {
       if (!urlParams.get('settings').match(/^[a-zA-Z0-9_-]+\.yml$/)) {
-        console.warn('Invalid settings file name. Ignoring. Use only alphanumeric characters, _ or -. and .yml extension.');
+        logger.warn('Invalid settings file name. Ignoring. Use only alphanumeric characters, _ or -. and .yml extension.');
       } else {
         settingsFilename = settingsFileUnsafe;
       }
@@ -52587,7 +53271,7 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
     }
   } catch (err) {
     showFatalError(err.message, err);
-    console.error(err);
+    logger.error(err);
   }
 })();
 
@@ -52595,4 +53279,4 @@ const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */
 
 /******/ })()
 ;
-//# sourceMappingURL=default.e96fb8bc3f5156904af8.js.map
+//# sourceMappingURL=default.8dabefd1a98e4bd9b2f8.js.map

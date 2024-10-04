@@ -1,5 +1,5 @@
 const PlayerAppState = require('./player-app-state');
-const { ENDING, IDLE } = require('./states');
+const { ENDING, RESET } = require('./states');
 
 class PlayerAppEndingState extends PlayerAppState {
   constructor(playerApp) {
@@ -7,48 +7,42 @@ class PlayerAppEndingState extends PlayerAppState {
     this.state = ENDING;
   }
 
-  showWaitingToBeginScreen() {
-    this.playerApp.playerOverlayMgr.showTextScreen(
-      this.playerApp.config.i18n.ui.waitingToBegin
-    );
-  }
-
-  showWaitingToEndScreen() {
-    this.playerApp.playerOverlayMgr.showTextScreen(
-      this.playerApp.config.i18n.ui.waitingToEnd
-    );
-  }
-
   onEnter(fromState) {
-    this.playerApp.gameView.cameraFollowPc();
-    if (fromState !== IDLE) {
-      this.playerApp.inputRouter.routeToMenus(this.playerApp);
-      const [endingText, classes] = this.playerApp.getCurrentEnding();
-      const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
-      this.playerApp.playerOverlayMgr.showEndingScreen(endingText, classes, inclusions);
-    } else {
-      this.playerApp.inputRouter.unroute();
-      this.showWaitingToBeginScreen();
-      this.playerApp.gameServerController.playerReady();
+    super.onEnter(fromState);
+    this.playerApp.gameView.cameraStop();
+    this.playerApp.inputRouter.routeToMenus(this.playerApp);
+    const [endingText, classes] = this.playerApp.getCurrentEnding();
+    const inclusions = this.playerApp.questTracker.getActiveFlags('inc.');
+    this.playerApp.playerOverlayMgr.showEndingScreen(endingText, classes, inclusions);
+    if (this.playerApp.config?.game?.endingTimeout) {
+      this.playerApp.setStateTimeout(this.playerApp.config.game.endingTimeout * 1000);
     }
   }
 
   onExit() {
     super.onExit();
     this.playerApp.playerOverlayMgr.hideEndingScreen();
-    this.playerApp.playerOverlayMgr.hideTextScreen();
   }
 
   onAction() {
+    super.onAction();
+    // If the ending text has not been revealed, the action button will reveal it.
+    // Otherwise, the player will be allowed to end.
     if (this.playerApp.playerOverlayMgr?.endingScreen?.revealStarted) {
       if (!this.playerApp.playerOverlayMgr.endingScreen.isTextRevealed()) {
         this.playerApp.playerOverlayMgr.endingScreen.revealText();
       } else {
-        this.playerApp.playerOverlayMgr.hideEndingScreen();
-        this.showWaitingToEndScreen();
-        this.playerApp.gameServerController.playerReady();
+        if (this.playerApp.isRoundCompleted()) {
+          this.playerApp.playerReady();
+        }
+        this.playerApp.setState(RESET);
       }
     }
+  }
+
+  onTimeout() {
+    super.onTimeout();
+    this.playerApp.setState(RESET);
   }
 }
 

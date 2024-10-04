@@ -218,7 +218,7 @@ class GameView {
   showDistractions() {
     this.targetArrow?.show();
   }
-f
+
   createDrone(options, x, y) {
     const newDrone = new Drone(options, x, y);
     this.drones.push(newDrone);
@@ -230,6 +230,10 @@ f
     if (index !== -1) {
       this.drones.splice(index, 1);
     }
+  }
+
+  cameraStop() {
+    this.camera.setTarget(null);
   }
 
   cameraFollowPc(instant = true) {

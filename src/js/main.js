@@ -11,13 +11,13 @@ require('../sass/default.scss');
 const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const StorylineManager = require('./lib/model/storyline-manager');
 const storylineLoader = require('./lib/loader/storyline-loader');
-const configureLogger = require('./lib/helpers/configure-logger');
+const { configureLogger } = require('./lib/helpers/configure-logger');
 
 (async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const statsPanel = urlParams.get('s') || null;
-    const liveTest = urlParams.get('test') || null;
-    const storylineId = urlParams.get('storyline') || null;
+  const urlParams = new URLSearchParams(window.location.search);
+  const statsPanel = urlParams.get('s') || null;
+  const liveTest = urlParams.get('test') || null;
+  const storylineId = urlParams.get('storyline') || null;
   const logLevel = urlParams.get('log') || 'warn';
   const logger = configureLogger({ level: logLevel });
 

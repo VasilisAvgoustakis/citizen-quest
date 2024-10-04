@@ -82,7 +82,6 @@ class PlayerOverlayManager {
 
     this.titleOverlay = new TitleOverlay(this.config, this.lang);
     this.$element.append(this.titleOverlay.$element);
-    this.titleOverlay.show();
 
     $(window).on('resize', () => {
       this.handleResize();

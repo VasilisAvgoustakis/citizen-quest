@@ -56,21 +56,25 @@ class GameManagerNetAdapter {
   }
 
   processPlayerReady(message) {
-    if (message.state && message.playerID) {
-      // Ignore playerReady messages if the state has changed
-      if (this.gameManager.getState() !== message.state) {
-        return;
-      }
-      this.gameManager.handlePlayerReady(message.playerID);
-    } else {
-      reportError('Error: Received playerReady message without state or playerID');
+    if (!message.state) {
+      reportError('Error: Received playerReady message without state');
+      return;
     }
+    if (!message.playerID) {
+      reportError('Error: Received playerReady message without playerID');
+      return;
+    }
+    // Ignore stale ready messages
+    if (this.gameManager.getState() !== message.state) {
+      return;
+    }
+    this.gameManager.handlePlayerReady(message.playerID);
   }
 
   generateSync() {
     const message = {
       type: 'sync',
-      state: this.gameManager.getDeprecatedStateName(),
+      state: this.gameManager?.stateHandler?.state,
     };
 
     const { round } = this.gameManager;

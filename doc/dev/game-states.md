@@ -1,114 +1,90 @@
-# Notes about the game stateHandler
+# State tracking
 
-The game can be in the following states:
+The server tracks the state of **rounds**. A round is an instance of a storyline that involves one 
+or more players.
 
-- **idle**: No one is playing. This is a "demo" / "attract players" mode.
-- **intro**: At least one station has a player, but the round has not started yet.
-- **playing**: A round of the game is in progress.
-- **ending**: The round is over, results are being shown.
+Client stations track the state of **session**. A session is a player's participation in the round.
 
-Transitions between these states happen in this way:
+The state of a round and a session are not the same. A session might start minutes after the round began 
+(another player initiated it), and end while the round is still going on (other players are still 
+playing). 
 
-- idle → intro: A player presses a button on a station.
-- intro → playing: Either
-  - If there's an intro sequence, it ended, timed out, or every player pressed a button to skip it.
-  - If there's no intro, the server might jump straight to playing.
-- playing → ending: The round is over, because: 
-  - the timer ran out
-  - all quests have been completed (all players ready to move on)
-  - the last remaining player aborted the game
-- ending → idle: The results have been shown. Every player is ready to move on, or the ending timed out. The game is now idle again.
-- ending → intro: If a station became active during the ending sequence, a new round starts immediatelly.
+## Station (Session state)
+
+Client stations track the session state through PlayerApp::setState and PlayerAppState subclasses.
 
 ```mermaid
 stateDiagram-v2
-    idle --> intro: station<br>active
-    intro --> playing: all players<br>ready
-    intro --> playing: timeout
-    playing --> ending: round<br>over (time)
-    playing --> ending: all players<br>aborted
-    playing --> ending: all quests<br>done
-    state after_end <<fork>>
-    ending --> after_end: all players<br>ready
-    ending --> after_end: timeout
-    after_end --> idle: no station<br>active
-    after_end --> intro: station<br>active
+    [*] --> reset
+    reset --> idle: sessionOver
+    idle --> queued: ready
+    queued --> intro: sessionCreated
+    intro --> playing: ready &<br>roundStarted
+    intro --> playing: timeout&<br>roundStarted
+    playing --> ending: playerRemoved
+    playing --> ending: roundEnded
+    ending --> reset: ready
+    ending --> reset: timeout
 ```
+This state would be tracked client-side.
 
-Game stations can be in the following states:
+- **idle**: The station is in the title screen, waiting for a player.
+- **queued**: The station is waiting for a round to start, either because there is no current round,
+  or because the round is in its **roundCompleted** state, and we're waiting for a new round. 
+- **intro**: The station is in the intro phase.
+- **playing**: The station is in the play phase.
+- **ending**: The station is in the ending phase.
 
-- idle: No one is playing.
-- active: A player is playing.
+#### Invariants
 
-Transitions between these states happen in this way:
+- **idle**: There should be no session.
+- **intro**: The session should exist. No Pc. The round can't be "ending".
+- **playing**: The session should exist. Pc exists. The round should have started.
+- **ending**: The session should exist. No Pc.
 
-- idle → active: A player presses a button on the station.
-- active → idle: When 
-  - the game transitions from ending to idle
-  - the game transitions from ending to intro but the player in this station decided not to continue
+### Error handling
 
 ```mermaid
 stateDiagram-v2
-    idle --> active: player<br>pressed button
-    active --> idle: player aborted<br>or timed-out
-    active --> idle: game<br>ended
-    active --> idle: game<br>ended & player<br>decided not to continue
+    queued --> reset: timeout
+    intro --> reset: sessionOver
+    intro --> reset: roundOver
+    playing --> reset: sessionOver
+    ending --> reset: sessionOver
 ```
 
-### Messaging and state
+- During **intro**, and **playing**, the session should exist. If the server
+    removed the player, the station should reset back to idle.
+- The **queued** state should eventually time out, and the station reset back to idle. 
 
-Players can be added to the server on any state. They can only be removed
-from the server on the playing state. The server transitons to the
-ending state when all players have been removed.
+## Game Server (Round state)
+
+The server tracks the state of the round via GameManager::setState, and GameManagerState subclasses.
 
 ```mermaid
-sequenceDiagram
-    participant Server
-    participant Station 1
-    participant Station 2
-    participant Station 3
-    Note left of Server: state: idle
-    Station 1 ->> Server: addPlayer
-    Note left of Server: state: intro
-    Station 2 ->> Server: addPlayer
-    Server -->> Server: introDone
-    Note left of Server: state: playing
-    Station 3 ->> Server: addPlayer
-    Station 2 ->> Server: removePlayer
-    Station 2 ->> Server: addPlayer
-    Station 2 ->> Server: removePlayer
-    Station 1 ->> Server: removePlayer
-    Station 3 ->> Server: removePlayer
-    Note left of Server: state: ending
-    alt
-        Server -->> Server: endingDone
-        Note left of Server: state: idle
-    end
-    alt
-        Station 1 ->> Server: addPlayer
-        Server -->> Server: endingDone
-        Note left of Server: state: intro
-    end
+stateDiagram-v2
+    [*] --> idle
+    idle --> roundStarting: addPlayer
+    roundStarting --> roundInProgress: playerReady
+    roundStarting --> roundInProgress: timeout
+    roundInProgress --> roundCompleted: timeOver
+    roundInProgress --> roundCompleted: removePlayer<br>[playerCount == 1]
+    roundInProgress --> roundCompleted: playerReady<br>[players.allReady]
+    roundCompleted --> idle: playerReady<br>[players.allReady]
+    roundCompleted --> idle: timeout
 ```
 
-### Proposal: Sessions
+- **idle**: No one is playing.
+- **roundStarting**: A round is starting. There's at least one player.
+- **roundInProgress**: A round is being played.
+- **ended**: The round has ended.
 
-This proposal should clarify state handling. A session is the span of a player's participation in a
-game round.
+## Interplay between Game Server and the Stations
 
-Sessions are handled by the server. The server is responsible for starting and ending sessions.
+- **Game 'idle'**: No players. Stations can only be in the **idle**, or **ready** states.
+- **Game 'roundStarting'**: One or more players. Stations can be **idle**, **ready** (waiting to get 
+   the server response), or **intro** (waiting for the player to press the button).
+- **Game 'roundInProgress'**: At least one station is in the **intro**, or **playing** state. The rest could be in any state.
+- **Game 'roundCompleted'**: At least one station is in the **ending** state. The rest could be in 
+  **ending**, **ready**, or **idle**.
 
-- A session is created when requested by a station.
-- A session ends when:
-  - the station requests it
-    - The player aborted the game
-    - The station timed out (no input from the player)
-  - the server decides:
-    - the game round ended
-    - the station that held the session requested a new one 
-
-The main difference this would achieve from the current state is it would make the communication
-between the client and server more stateful. Each session would have an id, so its state could be 
-tracked, and messages like "playerReady" would be associated with a session. If a station doesn't
-know about a session, or the server receives a message for a session that doesn't exist, they could
-be ignored.
