@@ -44672,27 +44672,98 @@ module.exports = ScoreCounterAdapter;
   \********************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
+const logger = __webpack_require__(/*! loglevel */ "./node_modules/loglevel/lib/loglevel.js");
 const PlayerAppStates = __webpack_require__(/*! ./player-app-states/states */ "./src/js/lib/app/player-app-states/states.js");
+const StorylineManager = __webpack_require__(/*! ../model/storyline-manager */ "./src/js/lib/model/storyline-manager.js");
 
 class LocalGameServerController {
-  constructor(playerApp) {
+  constructor(config, playerApp) {
+    this.config = config;
     this.playerApp = playerApp;
-  }
-
-  playerStart() {
-    this.playerApp.addPc();
-    this.playerApp.setState(PlayerAppStates.PLAYING);
+    this.round = 0;
+    this.roundInProgress = false;
+    this.storylineManager = new StorylineManager(config);
+    this.lastStoryline = null;
+    this.sessionActive = false;
+    this.handleRoundChanged();
+    this.playerApp.setState(PlayerAppStates.RESET);
+    this.playerApp.setState(PlayerAppStates.IDLE);
   }
 
   roundEnd() {
+    logger.info('Local: Round end');
+    this.roundInProgress = false;
     this.playerApp.setState(PlayerAppStates.ENDING);
   }
 
-  playerReady() {
-    if (this.playerApp.getState() === PlayerAppStates.ENDING) {
-      this.playerApp.removePc();
-      this.playerApp.resetGameState();
+  isRoundInProgress() {
+    return this.roundInProgress;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  isRoundCompleted() {
+    return !this.roundInProgress;
+  }
+
+  startSession() {
+    if (!this.sessionActive) {
+      this.handleSessionStarted();
     }
+  }
+
+  endSession() {
+    if (this.sessionActive) {
+      this.handleSessionEnded();
+    }
+  }
+
+  isSessionActive() {
+    return this.sessionActive;
+  }
+
+  playerReady() {
+    logger.info(`Local: Player ready ${this.playerApp.playerId}`);
+    if (this.playerApp.getState() === PlayerAppStates.ENDING) {
+      // Dirty transition, but server stage management needs more work
+      setTimeout(() => {
+        this.handleSessionEnded();
+      }, 0);
+    }
+  }
+
+  handleRoundChanged() {
+    if (this.round !== 0) {
+      this.playerApp.getStateHandler().onRoundEnd();
+    }
+    this.round += 1;
+    this.playerApp.setStoryline(this.getNextStoryline());
+    this.roundInProgress = false;
+    logger.info(`Round changed to ${this.round} (${this.lastStoryline})`);
+
+    this.playerApp.getStateHandler()?.onRoundStart();
+  }
+
+  handleSessionStarted() {
+    logger.info('Local: session started');
+    this.sessionActive = true;
+    this.roundInProgress = true;
+    this.playerApp.addPc();
+    this.playerApp.getStateHandler().onSessionStart();
+  }
+
+  handleSessionEnded() {
+    logger.info('Local: session ended');
+    this.sessionActive = false;
+    this.playerApp.removePc();
+    this.playerApp.getStateHandler().onSessionEnd();
+    this.handleRoundChanged();
+  }
+
+  getNextStoryline() {
+    this.lastStoryline = (this.lastStoryline === null)
+      ? this.storylineManager.getFirst()
+      : this.storylineManager.getNext(this.lastStoryline);
+    return this.lastStoryline;
   }
 }
 
@@ -53187,6 +53258,7 @@ const fetchTextures = __webpack_require__(/*! ./lib/helpers-client/fetch-texture
 const StorylineManager = __webpack_require__(/*! ./lib/model/storyline-manager */ "./src/js/lib/model/storyline-manager.js");
 const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */ "./src/js/lib/loader/storyline-loader.js");
 const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logger */ "./src/js/lib/helpers/configure-logger.js");
+const PlayerAppStates = __webpack_require__(/*! ./lib/app/player-app-states/states */ "./src/js/lib/app/player-app-states/states.js");
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -53254,13 +53326,11 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
         config.players[id].enabled = false;
       }
     });
-    const storylineManager = new StorylineManager(config);
     const playerApp = new PlayerApp(config, textures, playerId);
     $('[data-component="PlayerApp"]').replaceWith(playerApp.$element);
     playerApp.refresh();
 
-    playerApp.setGameServerController(new LocalGameServerController(playerApp));
-    playerApp.setStoryline(storylineId || storylineManager.getFirst());
+    playerApp.setGameServerController(new LocalGameServerController(config, playerApp));
 
     if (statsPanel) {
       playerApp.stats.showPanel(statsPanel);
@@ -53279,4 +53349,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=default.8dabefd1a98e4bd9b2f8.js.map
+//# sourceMappingURL=default.ee5c05fd07096a012889.js.map

@@ -12,6 +12,7 @@ const fetchTextures = require('./lib/helpers-client/fetch-textures');
 const StorylineManager = require('./lib/model/storyline-manager');
 const storylineLoader = require('./lib/loader/storyline-loader');
 const { configureLogger } = require('./lib/helpers/configure-logger');
+const PlayerAppStates = require('./lib/app/player-app-states/states');
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -79,13 +80,11 @@ const { configureLogger } = require('./lib/helpers/configure-logger');
         config.players[id].enabled = false;
       }
     });
-    const storylineManager = new StorylineManager(config);
     const playerApp = new PlayerApp(config, textures, playerId);
     $('[data-component="PlayerApp"]').replaceWith(playerApp.$element);
     playerApp.refresh();
 
-    playerApp.setGameServerController(new LocalGameServerController(playerApp));
-    playerApp.setStoryline(storylineId || storylineManager.getFirst());
+    playerApp.setGameServerController(new LocalGameServerController(config, playerApp));
 
     if (statsPanel) {
       playerApp.stats.showPanel(statsPanel);
