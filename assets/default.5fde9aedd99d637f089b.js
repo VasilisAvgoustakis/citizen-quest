@@ -45429,10 +45429,11 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('hintLevelChanged', () => {
-      this.playerOverlayMgr.changeQuestPromptText(
-        this.questTracker.getActiveStagePrompt()
-      );
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      const activePrompt = this.questTracker.getActiveStagePrompt();
+      if (activePrompt) {
+        this.playerOverlayMgr.changeQuestPromptText(activePrompt);
+        this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      }
     });
 
     this.hintManager.events.on('hintNeeded', () => {
@@ -47564,7 +47565,7 @@ module.exports = CfgLoader;
 
 function CfgReaderFetch(filename) {
   return fetch(filename, { cache: 'no-store' })
-    .then((response) => response.text());
+    .then((response) => (response.ok ? response.text() : ''));
 }
 
 module.exports = CfgReaderFetch;
@@ -47584,13 +47585,16 @@ async function storylineLoader(cfgLoader, storylinePath, ids) {
   return cfgLoader.load(
     ids.map((s) => `${storylinePath}/${s}.yml`),
     (cfgSegment, file) => {
-      const id = file.match(/\/([^/]*)\.yml$/)[1];
-      try {
-        validateStoryline(cfgSegment);
-      } catch (err) {
-        throw new Error(`Error validating storyline '${id}': ${err.message}`);
+      if (cfgSegment) {
+        const id = file.match(/\/([^/]*)\.yml$/)[1];
+        try {
+          validateStoryline(cfgSegment);
+        } catch (err) {
+          throw new Error(`Error validating storyline '${id}': ${err.message}`);
+        }
+        return Object.fromEntries([[id, cfgSegment]]);
       }
-      return Object.fromEntries([[id, cfgSegment]]);
+      throw new Error(`Error loading storyline from file ${file}`);
     }
   );
 }
@@ -53255,10 +53259,8 @@ __webpack_require__(/*! ./lib/live-test/live-test-manager */ "./src/js/lib/live-
 __webpack_require__(/*! ./lib/live-test/dialogue-live-tester */ "./src/js/lib/live-test/dialogue-live-tester.js");
 __webpack_require__(/*! ../sass/default.scss */ "./src/sass/default.scss");
 const fetchTextures = __webpack_require__(/*! ./lib/helpers-client/fetch-textures */ "./src/js/lib/helpers-client/fetch-textures.js");
-const StorylineManager = __webpack_require__(/*! ./lib/model/storyline-manager */ "./src/js/lib/model/storyline-manager.js");
 const storylineLoader = __webpack_require__(/*! ./lib/loader/storyline-loader */ "./src/js/lib/loader/storyline-loader.js");
 const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logger */ "./src/js/lib/helpers/configure-logger.js");
-const PlayerAppStates = __webpack_require__(/*! ./lib/app/player-app-states/states */ "./src/js/lib/app/player-app-states/states.js");
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -53308,7 +53310,8 @@ const PlayerAppStates = __webpack_require__(/*! ./lib/app/player-app-states/stat
       sentryInitialized = true;
     }
 
-    config.storylines = await storylineLoader(cfgLoader, 'config/storylines', config.storylines)
+    const storylinesToLoad = storylineId ? [storylineId] : config.storylines;
+    config.storylines = await storylineLoader(cfgLoader, 'config/storylines', storylinesToLoad)
       .catch((err) => {
         throw new Error(`Error loading configuration: ${err.message}`);
       });
@@ -53349,4 +53352,4 @@ const PlayerAppStates = __webpack_require__(/*! ./lib/app/player-app-states/stat
 
 /******/ })()
 ;
-//# sourceMappingURL=default.ee5c05fd07096a012889.js.map
+//# sourceMappingURL=default.5fde9aedd99d637f089b.js.map

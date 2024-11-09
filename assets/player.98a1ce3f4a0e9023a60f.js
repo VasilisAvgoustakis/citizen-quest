@@ -41072,10 +41072,11 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('hintLevelChanged', () => {
-      this.playerOverlayMgr.changeQuestPromptText(
-        this.questTracker.getActiveStagePrompt()
-      );
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      const activePrompt = this.questTracker.getActiveStagePrompt();
+      if (activePrompt) {
+        this.playerOverlayMgr.changeQuestPromptText(activePrompt);
+        this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      }
     });
 
     this.hintManager.events.on('hintNeeded', () => {
@@ -49149,4 +49150,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=player.dc50b38aaf98289fcb5a.js.map
+//# sourceMappingURL=player.98a1ce3f4a0e9023a60f.js.map

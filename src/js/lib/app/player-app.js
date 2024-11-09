@@ -178,10 +178,11 @@ class PlayerApp {
     });
 
     this.questTracker.events.on('hintLevelChanged', () => {
-      this.playerOverlayMgr.changeQuestPromptText(
-        this.questTracker.getActiveStagePrompt()
-      );
-      this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      const activePrompt = this.questTracker.getActiveStagePrompt();
+      if (activePrompt) {
+        this.playerOverlayMgr.changeQuestPromptText(activePrompt);
+        this.gameView.updateTargetArrow(this.questTracker.getActiveStageTarget());
+      }
     });
 
     this.hintManager.events.on('hintNeeded', () => {

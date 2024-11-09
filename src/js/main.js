@@ -9,10 +9,8 @@ require('./lib/live-test/live-test-manager');
 require('./lib/live-test/dialogue-live-tester');
 require('../sass/default.scss');
 const fetchTextures = require('./lib/helpers-client/fetch-textures');
-const StorylineManager = require('./lib/model/storyline-manager');
 const storylineLoader = require('./lib/loader/storyline-loader');
 const { configureLogger } = require('./lib/helpers/configure-logger');
-const PlayerAppStates = require('./lib/app/player-app-states/states');
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -62,7 +60,8 @@ const PlayerAppStates = require('./lib/app/player-app-states/states');
       sentryInitialized = true;
     }
 
-    config.storylines = await storylineLoader(cfgLoader, 'config/storylines', config.storylines)
+    const storylinesToLoad = storylineId ? [storylineId] : config.storylines;
+    config.storylines = await storylineLoader(cfgLoader, 'config/storylines', storylinesToLoad)
       .catch((err) => {
         throw new Error(`Error loading configuration: ${err.message}`);
       });
