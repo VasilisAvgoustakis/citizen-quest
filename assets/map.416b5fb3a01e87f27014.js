@@ -40105,10 +40105,10 @@ class MapApp {
         this.addScenery(new Scenery(id, props));
       });
       this.updateScenery();
-      this.updateNpcs();
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
+      this.updateNpcs();
       this.updateQuestMarkers();
     });
 
@@ -44164,4 +44164,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=map.6d267473c89e9bfed2cc.js.map
+//# sourceMappingURL=map.416b5fb3a01e87f27014.js.map

@@ -43,10 +43,10 @@ class MapApp {
         this.addScenery(new Scenery(id, props));
       });
       this.updateScenery();
-      this.updateNpcs();
       Object.entries(storyline.npcs).forEach(([id, props]) => {
         this.addNpc(new Character(id, props));
       });
+      this.updateNpcs();
       this.updateQuestMarkers();
     });
 
