@@ -46,6 +46,9 @@ class GameView {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    if (scenery.cond) {
+      view.hide(false);
+    }
     this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
@@ -90,6 +93,9 @@ class GameView {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
+    if (npc.cond) {
+      view.hide(false);
+    }
     this.townView.addView(view.display);
     this.npcViews[npc.id] = view;
   }

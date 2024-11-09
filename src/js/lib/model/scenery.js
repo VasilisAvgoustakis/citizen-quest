@@ -13,7 +13,6 @@ class Scenery {
     if (props.direction) {
       this.setDirection(props.direction);
     }
-
     if (props.cond) {
       this.cond = props.cond;
     }

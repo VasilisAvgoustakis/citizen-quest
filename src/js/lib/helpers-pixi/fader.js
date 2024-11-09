@@ -37,17 +37,35 @@ class Fader {
   }
 
   fadeOut(duration, completeCallback = null) {
-    this.installTickHandler(duration, 0, () => {
+    if (duration === 0) {
+      this.removeTickHandler();
       this.display.visible = false;
+      this.display.alpha = 0;
       if (completeCallback) {
         completeCallback();
       }
-    });
+    } else {
+      this.installTickHandler(duration, 0, () => {
+        this.display.visible = false;
+        if (completeCallback) {
+          completeCallback();
+        }
+      });
+    }
   }
 
   fadeIn(duration, completeCallback = null) {
-    this.display.visible = true;
-    this.installTickHandler(duration, 1, completeCallback);
+    if (duration === 0) {
+      this.removeTickHandler();
+      this.display.visible = true;
+      this.display.alpha = 1;
+      if (completeCallback) {
+        completeCallback();
+      }
+    } else {
+      this.display.visible = true;
+      this.installTickHandler(duration, 1, completeCallback);
+    }
   }
 }
 

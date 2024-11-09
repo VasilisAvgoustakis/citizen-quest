@@ -45851,17 +45851,35 @@ class Fader {
   }
 
   fadeOut(duration, completeCallback = null) {
-    this.installTickHandler(duration, 0, () => {
+    if (duration === 0) {
+      this.removeTickHandler();
       this.display.visible = false;
+      this.display.alpha = 0;
       if (completeCallback) {
         completeCallback();
       }
-    });
+    } else {
+      this.installTickHandler(duration, 0, () => {
+        this.display.visible = false;
+        if (completeCallback) {
+          completeCallback();
+        }
+      });
+    }
   }
 
   fadeIn(duration, completeCallback = null) {
-    this.display.visible = true;
-    this.installTickHandler(duration, 1, completeCallback);
+    if (duration === 0) {
+      this.removeTickHandler();
+      this.display.visible = true;
+      this.display.alpha = 1;
+      if (completeCallback) {
+        completeCallback();
+      }
+    } else {
+      this.display.visible = true;
+      this.installTickHandler(duration, 1, completeCallback);
+    }
   }
 }
 
@@ -47624,6 +47642,9 @@ class Character {
     }
     if (props.direction) {
       this.setDirection(props.direction);
+    }
+    if (props.cond) {
+      this.cond = props.cond;
     }
   }
 
@@ -49801,7 +49822,6 @@ class Scenery {
     if (props.direction) {
       this.setDirection(props.direction);
     }
-
     if (props.cond) {
       this.cond = props.cond;
     }
@@ -51724,13 +51744,13 @@ class CharacterView {
     return this.attachments[id];
   }
 
-  show() {
-    this.fader.fadeIn(1000);
+  show(animated = true) {
+    this.fader.fadeIn(animated ? 1000 : 0);
     this.visible = true;
   }
 
-  hide() {
-    this.fader.fadeOut(1000);
+  hide(animated = true) {
+    this.fader.fadeOut(animated ? 1000 : 0);
     this.visible = false;
   }
 
@@ -52172,6 +52192,9 @@ class GameView {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    if (scenery.cond) {
+      view.hide(false);
+    }
     this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
@@ -52216,6 +52239,9 @@ class GameView {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
+    if (npc.cond) {
+      view.hide(false);
+    }
     this.townView.addView(view.display);
     this.npcViews[npc.id] = view;
   }
@@ -52910,13 +52936,13 @@ class SceneryView {
     this.display.destroy();
   }
 
-  show() {
-    this.fader.fadeIn(1000);
+  show(animated = true) {
+    this.fader.fadeIn(animated ? 1000 : 0);
     this.visible = true;
   }
 
-  hide() {
-    this.fader.fadeOut(1000);
+  hide(animated = true) {
+    this.fader.fadeOut(animated ? 1000 : 0);
     this.visible = false;
   }
 
@@ -53352,4 +53378,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=default.5fde9aedd99d637f089b.js.map
+//# sourceMappingURL=default.09bef6b9ad2c25ac77e2.js.map

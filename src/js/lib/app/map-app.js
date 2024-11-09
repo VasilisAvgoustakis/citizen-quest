@@ -198,6 +198,9 @@ class MapApp {
 
   addNpc(npc) {
     const view = new CharacterView(this.config, this.textures, npc, this.townView);
+    if (npc.cond) {
+      view.hide(false);
+    }
     this.npcViews[npc.id] = view;
     this.townView.mainLayer.addChild(view.display);
   }
@@ -218,6 +221,9 @@ class MapApp {
 
   addScenery(scenery) {
     const view = new SceneryView(this.config, this.textures, scenery, this.townView);
+    if (scenery.cond) {
+      view.hide(false);
+    }
     this.townView.mainLayer.addChild(view.display);
     this.sceneryViews[scenery.id] = view;
   }

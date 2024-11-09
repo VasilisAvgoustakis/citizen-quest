@@ -85,13 +85,13 @@ class CharacterView {
     return this.attachments[id];
   }
 
-  show() {
-    this.fader.fadeIn(1000);
+  show(animated = true) {
+    this.fader.fadeIn(animated ? 1000 : 0);
     this.visible = true;
   }
 
-  hide() {
-    this.fader.fadeOut(1000);
+  hide(animated = true) {
+    this.fader.fadeOut(animated ? 1000 : 0);
     this.visible = false;
   }
 
