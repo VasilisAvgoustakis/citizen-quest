@@ -16,6 +16,9 @@ class Scenery {
     if (props.cond) {
       this.cond = props.cond;
     }
+    if (props.zIndex) {
+      this.zIndex = props.zIndex;
+    }
   }
 
   setPosition(x, y) {
