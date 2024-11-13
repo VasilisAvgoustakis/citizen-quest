@@ -104,6 +104,7 @@ PixiTween.Popper = (displayObject) => {
     destroy: () => {
       if (tween) {
         tween.destroy();
+        tween = null;
       }
     },
   };

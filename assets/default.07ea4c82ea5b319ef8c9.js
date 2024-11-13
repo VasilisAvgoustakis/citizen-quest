@@ -46000,6 +46000,7 @@ PixiTween.Popper = (displayObject) => {
     destroy: () => {
       if (tween) {
         tween.destroy();
+        tween = null;
       }
     },
   };
@@ -53381,4 +53382,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=default.af37105a997472055c8b.js.map
+//# sourceMappingURL=default.07ea4c82ea5b319ef8c9.js.map

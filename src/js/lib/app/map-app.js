@@ -31,6 +31,7 @@ class MapApp {
     this.questMarkers = {};
 
     this.questTracker.events.on('storylineChanged', (storylineId) => {
+      this.clearQuestMarkers();
       this.clearNpcs();
       this.clearScenery();
       const storyline = this.config?.storylines?.[storylineId];
@@ -51,14 +52,14 @@ class MapApp {
     });
 
     this.questTracker.events.on('questActive', () => {
-      this.updateQuestMarkers();
       this.updateScenery();
       this.updateNpcs();
+      this.updateQuestMarkers();
     });
     this.questTracker.events.on('questDone', () => {
-      this.updateQuestMarkers();
       this.updateScenery();
       this.updateNpcs();
+      this.updateQuestMarkers();
     });
 
     this.pcs = {};
@@ -144,6 +145,7 @@ class MapApp {
 
       this.updateScenery();
       this.updateNpcs();
+      this.updateQuestMarkers();
     });
 
     // Game loop
@@ -308,7 +310,6 @@ class MapApp {
     );
     marker.setScale(this.townView.display.width / MapApp.APP_WIDTH);
     character.addAttachment('map-marker', marker);
-    character.display.addChild(marker.display);
     marker.setPosition(0, -character.display.height);
     marker.popper.show();
   }
@@ -323,6 +324,15 @@ class MapApp {
       });
     } else {
       onComplete();
+    }
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  destroyMarker(character) {
+    const marker = character.getAttachment('map-marker');
+    if (marker) {
+      marker.destroy();
+      character.removeAttachment('map-marker');
     }
   }
 
@@ -345,6 +355,13 @@ class MapApp {
         this.removeMarker(npcView);
       }
     });
+  }
+
+  clearQuestMarkers() {
+    Object.values(this.npcViews).forEach((npcView) => {
+      this.destroyMarker(npcView);
+    });
+    this.questMarkers = {};
   }
 }
 

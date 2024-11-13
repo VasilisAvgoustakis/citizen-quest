@@ -3,6 +3,7 @@ const { Popper } = require('../helpers-pixi/tween');
 
 class MapMarker {
   constructor(texture, contentTexture, anchor = null) {
+    this.destroyed = false;
     this.display = new PIXI.Container();
     this.markerDisplay = new PIXI.Sprite(texture);
     this.display.addChild(this.markerDisplay);
@@ -18,24 +19,33 @@ class MapMarker {
   }
 
   destroy() {
+    this.destroyed = true;
     this.popper.destroy();
     this.display.destroy({ children: true });
   }
 
   setScale(scale) {
-    this.display.scale.set(scale, scale);
+    if (!this.destroyed) {
+      this.display.scale.set(scale, scale);
+    }
   }
 
   setPosition(x, y) {
-    this.display.position.set(x, y);
+    if (!this.destroyed) {
+      this.display.position.set(x, y);
+    }
   }
 
   show(onComplete = null) {
-    this.popper.show(onComplete);
+    if (!this.destroyed) {
+      this.popper.show(onComplete);
+    }
   }
 
   hide(onComplete = null) {
-    this.popper.hide(onComplete);
+    if (!this.destroyed) {
+      this.popper.hide(onComplete);
+    }
   }
 }
 
