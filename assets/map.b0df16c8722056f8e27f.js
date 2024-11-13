@@ -42999,12 +42999,14 @@ class MultiTextScroller {
 
   displayText(text) {
     this.clear();
-    const texts = (typeof text === 'object')
-      ? this.config.game.languages
-        .map((lang) => text?.[lang])
-        .filter((t) => t)
-      : [text];
-    texts.forEach((t) => { this.createScroller(t); });
+
+    this.config.game.languages.forEach((lang) => {
+      const t = text?.[lang];
+      if (t) {
+        this.createScroller(t, lang);
+      }
+    });
+
     if (this.scrollers.length > 0) {
       this.scrollers[0].speed = this.speed;
       this.scrollers.forEach((scroller, i) => {
@@ -43017,8 +43019,8 @@ class MultiTextScroller {
     }
   }
 
-  createScroller(text) {
-    const scroller = new TextScroller(this.config);
+  createScroller(text, lang) {
+    const scroller = new TextScroller(this.config, lang);
     this.$element.append(scroller.$element);
     this.scrollers.push(scroller);
     scroller.displayText(text);
@@ -43109,10 +43111,13 @@ module.exports = ScoreCounterOverlay;
 const MAX_TEXTS = 10;
 
 class TextScroller {
-  constructor(config) {
+  constructor(config, id = null) {
     this.config = config;
     this.$element = $('<div></div>')
       .addClass('text-scroller');
+    if (id) {
+      this.$element.addClass(`text-scroller-${id}`);
+    }
     this.texts = [];
     this.speed = 75; // px per second
     this.ticker = this.ticker.bind(this);
@@ -44193,4 +44198,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=map.4d69e66b339fd954870b.js.map
+//# sourceMappingURL=map.b0df16c8722056f8e27f.js.map

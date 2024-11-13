@@ -18,6 +18,7 @@
   "scripts": {
     "build": "npx webpack",
     "watch": "npx webpack --watch",
+    "start": "cd ./server && npm start",
     "test": "mocha"
   },
   "devDependencies": {

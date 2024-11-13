@@ -20,12 +20,14 @@ class MultiTextScroller {
 
   displayText(text) {
     this.clear();
-    const texts = (typeof text === 'object')
-      ? this.config.game.languages
-        .map((lang) => text?.[lang])
-        .filter((t) => t)
-      : [text];
-    texts.forEach((t) => { this.createScroller(t); });
+
+    this.config.game.languages.forEach((lang) => {
+      const t = text?.[lang];
+      if (t) {
+        this.createScroller(t, lang);
+      }
+    });
+
     if (this.scrollers.length > 0) {
       this.scrollers[0].speed = this.speed;
       this.scrollers.forEach((scroller, i) => {
@@ -38,8 +40,8 @@ class MultiTextScroller {
     }
   }
 
-  createScroller(text) {
-    const scroller = new TextScroller(this.config);
+  createScroller(text, lang) {
+    const scroller = new TextScroller(this.config, lang);
     this.$element.append(scroller.$element);
     this.scrollers.push(scroller);
     scroller.displayText(text);

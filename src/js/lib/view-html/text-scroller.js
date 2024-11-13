@@ -3,10 +3,13 @@
 const MAX_TEXTS = 10;
 
 class TextScroller {
-  constructor(config) {
+  constructor(config, id = null) {
     this.config = config;
     this.$element = $('<div></div>')
       .addClass('text-scroller');
+    if (id) {
+      this.$element.addClass(`text-scroller-${id}`);
+    }
     this.texts = [];
     this.speed = 75; // px per second
     this.ticker = this.ticker.bind(this);
