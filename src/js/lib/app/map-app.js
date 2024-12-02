@@ -69,7 +69,8 @@ class MapApp {
 
     // HTML elements
     this.$element = $('<div></div>')
-      .addClass('map-app');
+      .addClass('map-app')
+      .addClass(`theme-${config.game.theme ?? 'default'}`);
 
     this.$pixiWrapper = $('<div></div>')
       .addClass('pixi-wrapper')

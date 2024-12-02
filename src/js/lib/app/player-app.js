@@ -53,6 +53,7 @@ class PlayerApp {
 
     this.playerOverlayMgr = new PlayerOverlayManager(config, this.lang, playerId, this.flags);
     this.$element = this.playerOverlayMgr.$element;
+    this.$element.addClass(`theme-${config.game.theme ?? 'default'}`);
     this.stats = new Stats();
     this.playerOverlayMgr.$element.append(this.stats.dom);
 

@@ -40131,7 +40131,8 @@ class MapApp {
 
     // HTML elements
     this.$element = $('<div></div>')
-      .addClass('map-app');
+      .addClass('map-app')
+      .addClass(`theme-${config.game.theme ?? 'default'}`);
 
     this.$pixiWrapper = $('<div></div>')
       .addClass('pixi-wrapper')
@@ -44226,4 +44227,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=map.8185632b243fed89183f.js.map
+//# sourceMappingURL=map.cbf1cd45882412df30db.js.map

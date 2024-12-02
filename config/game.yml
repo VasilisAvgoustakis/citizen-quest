@@ -9,6 +9,7 @@ game:
   playerAppWidth: 1024
   playerAppHeight: 768
   playerAppFontRatio: 0.0175
+  theme: default
   devModeShortcuts: true
   userModeShortcuts: true
   canSwitchQuests: true

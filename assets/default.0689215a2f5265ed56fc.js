@@ -45304,6 +45304,7 @@ class PlayerApp {
 
     this.playerOverlayMgr = new PlayerOverlayManager(config, this.lang, playerId, this.flags);
     this.$element = this.playerOverlayMgr.$element;
+    this.$element.addClass(`theme-${config.game.theme ?? 'default'}`);
     this.stats = new Stats();
     this.playerOverlayMgr.$element.append(this.stats.dom);
 
@@ -53382,4 +53383,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=default.07ea4c82ea5b319ef8c9.js.map
+//# sourceMappingURL=default.0689215a2f5265ed56fc.js.map
