@@ -394,7 +394,15 @@ class PlayerApp {
     });
     this.dialogueSequencer.play(dialogue, this.getDialogueContext(), { top: title });
     this.dialogueSequencer.events.once('end', () => {
-      this.inputRouter.routeToPcMovement(this);
+      this.inputRouter.routeToNone();
+      // Add a delay to avoid accidental re-triggering of the dialogue
+      setTimeout(() => {
+        // Check that the input router was not re-routed during the delay
+        // (e.g. game finishing)
+        if (!this.inputRouter.isRouted()) {
+          this.inputRouter.routeToPcMovement(this);
+        }
+      }, 500);
       this.gameView.cameraUsePreset('walking');
       this.gameView.showDistractions();
       if (!hintManagerReset) {

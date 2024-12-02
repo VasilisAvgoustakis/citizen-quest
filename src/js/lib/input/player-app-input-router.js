@@ -17,7 +17,12 @@ class PlayerAppInputRouter {
   unroute() {
     if (this.currentConnection) {
       this.currentConnection.unroute();
+      this.currentConnection = null;
     }
+  }
+
+  isRouted() {
+    return this.currentConnection !== null;
   }
 
   routeToPcMovement(playerApp) {
@@ -32,6 +37,10 @@ class PlayerAppInputRouter {
 
   routeToMenus(playerApp) {
     this.setConnection(new MenuConnection(this.inputManager, playerApp));
+  }
+
+  routeToNone() {
+    this.unroute();
   }
 }
 
