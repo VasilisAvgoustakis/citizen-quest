@@ -1,4 +1,52 @@
 $margin: 0.8em;
+$overlay-show-animation-duration: 1.25s;
+$overlay-hide-animation-duration: 0.25s;
+$overlay-counter-animation-duration: 0.75s;
+$overlay-check-animation-duration: 0.75s;
+
+@keyframes bounce-in {
+  0% {
+    transform: translateY(calc(100% + $margin));
+  }
+
+  16% {
+    transform: translateY(-32%);
+  }
+
+  28% {
+    transform: translateY(13%);
+  }
+
+  44% {
+    transform: translateY(-5%);
+  }
+
+  59% {
+    transform: translateY(2%);
+  }
+
+  73% {
+    transform: translateY(-1%);
+  }
+
+  88% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes hide {
+  0% {
+      transform: translateY(0);
+  }
+
+  100% {
+      transform: translateY(calc(100% + $margin));
+  }
+}
 
 .quest-overlay {
   position: absolute;
@@ -13,11 +61,14 @@ $margin: 0.8em;
   font-size: 1.5em;
   @include RobotoCondensedBold;
   transform: translateY(calc(100% + $margin));
-  transition: transform 0.3s ease-in-out 0s;
 
   &.visible {
-    transform: translateY(0);
-    transition-delay: 0.3s;
+    // Persist the effect of the animation
+    animation: bounce-in $overlay-show-animation-duration forwards;
+  }
+
+  &.hidden {
+    animation: hide $overlay-hide-animation-duration forwards;
   }
 
   $counter-size: 1.5em;
@@ -36,10 +87,14 @@ $margin: 0.8em;
         @keyframes activate {
             0% {
               opacity: 0;
-              transform: scale(2);
+              transform: scale(3);
             }
-            50% {
+            60% {
               opacity: 1;
+              transform: scale(0.66);
+            }
+            90% {
+              transform: scale(1.2);
             }
             100% {
               transform: scale(1);
@@ -52,7 +107,7 @@ $margin: 0.8em;
         margin: 0 0.1em;
         border: none;
         border-radius: 0;
-        animation: activate 0.5s ease-in-out;
+        animation: activate $overlay-counter-animation-duration ease-in-out;
         background-image: url('../../static/openmoji/counters/check.svg');
         background-size: contain;
         background-repeat: no-repeat;
@@ -100,8 +155,16 @@ $margin: 0.8em;
       opacity: 0;
     }
 
-    50% {
+    30% {
       opacity: 1;
+    }
+
+    60% {
+      transform: scale(0.66);
+    }
+
+    90% {
+      transform: scale(1.2);
     }
 
     100% {
@@ -113,15 +176,15 @@ $margin: 0.8em;
     &:after {
       content: " ";
       display: block;
-      width: 1.5em;
-      height: 1.5em;
+      width: 1.7em;
+      height: 1.7em;
       position: absolute;
-      top: 0.35em;
-      left: 0.7em;
+      top: 0.3em;
+      left: 0.55em;
       background-image: url('../../static/ui/quest-checkbox-check.svg');
       background-repeat: no-repeat;
       background-size: contain;
-      animation: check 0.5s ease-in-out;
+      animation: check $overlay-check-animation-duration ease-in-out;
       animation-iteration-count: 1;
     }
   }

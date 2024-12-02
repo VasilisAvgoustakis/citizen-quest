@@ -1,6 +1,11 @@
 const UIQueue = require('./ui-queue');
 const QuestOverlayPanel = require('./quest-overlay-panel');
 
+const HIDE_PROMPT_DURATION = 500;
+const SHOW_PROMPT_DURATION = 1250;
+const COUNTER_UPDATE_DURATION = 1250;
+const MARK_DONE_DURATION = 1250;
+
 class QuestOverlay {
   constructor(config, lang) {
     this.config = config;
@@ -39,7 +44,7 @@ class QuestOverlay {
 
     this.uiQueue.add(() => {
       this.panel.hide();
-    }, () => (this.panel.isVisible() ? 500 : 0));
+    }, () => (this.panel.isVisible() ? HIDE_PROMPT_DURATION : 0));
 
     this.currentCount = (keepCount && this.currentCount) ? this.currentCount : initialCount;
     if (text) {
@@ -55,7 +60,7 @@ class QuestOverlay {
           this.panel.setCounter(this.currentCount);
         }
         this.panel.show();
-      }, 500);
+      }, SHOW_PROMPT_DURATION);
     }
   }
 
@@ -68,10 +73,10 @@ class QuestOverlay {
     this.currentCount = count;
     this.uiQueue.add(() => {
       this.panel.setCounter(count);
-    }, 1000);
+    }, COUNTER_UPDATE_DURATION);
   }
 
-  markDone(duration = 1000, initialDelay = 0) {
+  markDone(duration = MARK_DONE_DURATION, initialDelay = 0) {
     if (initialDelay) {
       this.uiQueue.addPause(initialDelay);
     }

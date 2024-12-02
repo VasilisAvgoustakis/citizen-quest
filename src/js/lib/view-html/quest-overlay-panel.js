@@ -29,10 +29,12 @@ class QuestOverlayPanel {
 
   show() {
     this.$element.addClass('visible');
+    this.$element.removeClass('hidden');
   }
 
   hide() {
     this.$element.removeClass('visible');
+    this.$element.addClass('hidden');
   }
 
   reset() {

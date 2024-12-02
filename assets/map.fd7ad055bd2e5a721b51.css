@@ -787,6 +787,40 @@ h1, h2, h3, h4, h5, h6 {
   background-size: contain;
 }
 
+@keyframes bounce-in {
+  0% {
+    transform: translateY(calc(100% + 0.8em));
+  }
+  16% {
+    transform: translateY(-32%);
+  }
+  28% {
+    transform: translateY(13%);
+  }
+  44% {
+    transform: translateY(-5%);
+  }
+  59% {
+    transform: translateY(2%);
+  }
+  73% {
+    transform: translateY(-1%);
+  }
+  88% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes hide {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(calc(100% + 0.8em));
+  }
+}
 .quest-overlay {
   position: absolute;
   left: 0.8em;
@@ -802,11 +836,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   font-style: normal;
   transform: translateY(calc(100% + 0.8em));
-  transition: transform 0.3s ease-in-out 0s;
 }
 .quest-overlay.visible {
-  transform: translateY(0);
-  transition-delay: 0.3s;
+  animation: bounce-in 1.25s forwards;
+}
+.quest-overlay.hidden {
+  animation: hide 0.25s forwards;
 }
 .quest-overlay .counter {
   margin: 0 -0.2em;
@@ -822,10 +857,14 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes activate {
   0% {
     opacity: 0;
-    transform: scale(2);
+    transform: scale(3);
   }
-  50% {
+  60% {
     opacity: 1;
+    transform: scale(0.66);
+  }
+  90% {
+    transform: scale(1.2);
   }
   100% {
     transform: scale(1);
@@ -837,7 +876,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0 0.1em;
   border: none;
   border-radius: 0;
-  animation: activate 0.5s ease-in-out;
+  animation: activate 0.75s ease-in-out;
   background-image: url(698254ebfecb14ba2387.svg);
   background-size: contain;
   background-repeat: no-repeat;
@@ -875,8 +914,14 @@ h1, h2, h3, h4, h5, h6 {
     transform: scale(2);
     opacity: 0;
   }
-  50% {
+  30% {
     opacity: 1;
+  }
+  60% {
+    transform: scale(0.66);
+  }
+  90% {
+    transform: scale(1.2);
   }
   100% {
     transform: scale(1);
@@ -885,15 +930,15 @@ h1, h2, h3, h4, h5, h6 {
 .quest-overlay.with-checkmark-checked:after {
   content: " ";
   display: block;
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.7em;
+  height: 1.7em;
   position: absolute;
-  top: 0.35em;
-  left: 0.7em;
+  top: 0.3em;
+  left: 0.55em;
   background-image: url(385b8dce4631622324f4.svg);
   background-repeat: no-repeat;
   background-size: contain;
-  animation: check 0.5s ease-in-out;
+  animation: check 0.75s ease-in-out;
   animation-iteration-count: 1;
 }
 
@@ -1087,4 +1132,4 @@ html.with-fatal-error body {
   margin-bottom: 1.2em;
 }
 
-/*# sourceMappingURL=map.8490b0dcb785b8f4be5a.css.map*/
+/*# sourceMappingURL=map.fd7ad055bd2e5a721b51.css.map*/
