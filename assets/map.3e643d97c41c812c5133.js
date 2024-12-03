@@ -40111,6 +40111,7 @@ class MapApp {
       });
       this.updateNpcs();
       this.updateQuestMarkers();
+      this.sortScenery();
     });
 
     this.questTracker.events.on('questActive', () => {
@@ -40289,7 +40290,7 @@ class MapApp {
     if (scenery.cond) {
       view.hide(false);
     }
-    this.townView.mainLayer.addChild(view.display);
+    this.townView.mainLayer.addChild(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
@@ -40305,6 +40306,12 @@ class MapApp {
       this.townView.mainLayer.removeChild(sceneryView.display);
     });
     this.sceneryViews = [];
+  }
+
+  sortScenery() {
+    // Sort layers where scenery can go. The main layer is sorted in the main loop.
+    this.townView.sortViews('back');
+    this.townView.sortViews('front');
   }
 
   ensureSceneryVisible(id) {
@@ -44227,4 +44234,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=map.cbf1cd45882412df30db.js.map
+//# sourceMappingURL=map.3e643d97c41c812c5133.js.map
