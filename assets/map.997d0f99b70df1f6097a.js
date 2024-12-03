@@ -40290,7 +40290,7 @@ class MapApp {
     if (scenery.cond) {
       view.hide(false);
     }
-    this.townView.mainLayer.addChild(view.display, scenery.layer);
+    this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
@@ -44234,4 +44234,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=map.3e643d97c41c812c5133.js.map
+//# sourceMappingURL=map.997d0f99b70df1f6097a.js.map

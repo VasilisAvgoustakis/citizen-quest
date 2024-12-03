@@ -228,7 +228,7 @@ class MapApp {
     if (scenery.cond) {
       view.hide(false);
     }
-    this.townView.mainLayer.addChild(view.display, scenery.layer);
+    this.townView.addView(view.display, scenery.layer);
     this.sceneryViews[scenery.id] = view;
   }
 
