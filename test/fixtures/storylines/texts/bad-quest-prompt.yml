@@ -1,0 +1,24 @@
+decision:
+  en: "There's English here"
+  de: "Hier ist Deutsch"
+prompt:
+  en: "But there's english here"
+  de: "Aber hier ist Deutsch"
+npcs: {}
+quests:
+  testQuest:
+    npc: mayor
+    mood: neutral
+    stages:
+      - prompt:
+          en: "Only English here"
+        dialogues:
+          mayor:
+            - text: "..."
+              set: [ 'quest.testQuest.done' ]
+    available:
+      dialogue:
+        - text: "Start"
+          set: [ 'quest.testQuest.active' ]
+ending:
+  dialogue: []

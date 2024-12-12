@@ -1,0 +1,11 @@
+decision:
+  en: "Only English here"
+  de: "Nur Englisch hier"
+  es: "Solo inglés aquí"
+prompt:
+  en: "But there's english here"
+  de: "Aber hier ist Deutsch"
+npcs: {}
+quests: {}
+ending:
+  dialogue: []

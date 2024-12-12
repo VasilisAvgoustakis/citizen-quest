@@ -1,0 +1,16 @@
+decision:
+  en: "English here"
+  es: "Español aquí"
+prompt:
+  en: "English here"
+  es: "Español aquí"
+npcs:
+  mayor:
+    name:
+      en: Mayor
+    spawn: { x: 0, y: 0 }
+    dialogue:
+      - text: "..."
+quests: {}
+ending:
+  dialogue: []

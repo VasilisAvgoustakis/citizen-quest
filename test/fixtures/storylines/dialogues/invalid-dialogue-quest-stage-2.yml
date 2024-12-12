@@ -1,0 +1,44 @@
+decision: "..."
+prompt: "..."
+npcs:
+  mayor:
+      name: 'Mayor'
+      spawn: { x: 0, y: 0 }
+      dialogue:
+        - text: "I'm the mayor"
+  baker:
+      name: 'Citizen 1'
+      spawn: { x: 100, y: 0 }
+      dialogue:
+          - text: "I'm a baker"
+quests:
+  basicQuest:
+    npc: mayor
+    mood: cake
+    available:
+      dialogue:
+        - text: "I need a cake!"
+          set: [ 'quest.basicQuest.active' ]
+    dialogues:
+      baker:
+        - text: "I bake cake."
+    stages:
+      - prompt: "Go back to the mayor"
+        cond: "quest.basicQuest.hasCake"
+        dialogues:
+          mayor:
+            - text: "Thank you for the cake"
+              set: ['quest.basicQuest.done']
+      - prompt: "Go talk to the baker"
+        dialogues:
+          mayor:
+            - text: "Go talk to the baker"
+          baker:
+            - id: anId
+              text: "Here's a cake"
+              set: ['quest.basicQuest.hasCake']
+            - id: anId
+              text: "No cake for you."
+ending:
+  dialogue:
+    - text: "And so the mayor got a cake"

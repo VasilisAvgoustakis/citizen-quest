@@ -1,9 +1,12 @@
 const Ajv = require('ajv');
 const AjvErrors = require('ajv-errors');
+const traverse = require('traverse');
 const schema = require('../../../../specs/storyline.schema.json');
 const dialogueSchema = require('../../../../specs/dialogue.schema.json');
 const { fromJson } = require('./dialogues/dialogue');
 const LogicParser = require('./dialogues/logic-parser');
+const { validateDialogue } = require('./dialogues/dialogue-validation');
+const Dialogue = require('./dialogues/dialogue');
 
 function validateStorylineQuestNpcs(storyline) {
   // Every npc in /quests/*/npc must be defined in /npcs
@@ -13,6 +16,41 @@ function validateStorylineQuestNpcs(storyline) {
     if (quest.npc && !npcs.includes(quest.npc)) {
       throw new Error(`Quest ${questId} references undefined npc ${quest.npc}`);
     }
+  });
+}
+
+function traverseTexts(storyline, callback) {
+  const propertiesWithTexts = ['decision', 'name', 'prompt', 'text', 'thenText'];
+  traverse(storyline).forEach(function nodeCallback(node) {
+    if (propertiesWithTexts.includes(this.key) && typeof node === 'object' && !Array.isArray(node)) {
+      callback.call(this, node);
+    }
+    if (this.key === 'prompt' && Array.isArray(node.text)) {
+      node.forEach((prompt) => {
+        if (prompt.text && typeof prompt.text === 'object') {
+          callback.call(this, prompt.text);
+        }
+      });
+    }
+  });
+}
+
+function validateStorylineTexts(storyline) {
+  // Collect all language codes present in the storyline
+  const languages = new Set();
+  traverseTexts(storyline, (node) => {
+    Object.keys(node).forEach((language) => {
+      languages.add(language);
+    });
+  });
+
+  // Now check that all texts have every language
+  traverseTexts(storyline, function nodeCallback(node) {
+    languages.forEach((language) => {
+      if (!node[language]) {
+        throw new Error(`Missing text for language '${language}' in ${this.path.join('.')}`);
+      }
+    });
   });
 }
 
@@ -151,6 +189,36 @@ function validateExpressions(storyline) {
   validateStorylineQuestStageCounter(storyline);
 }
 
+function buildStorylineDialogue(items) {
+  return Dialogue.fromJson({
+    id: 'test-dialogue',
+    items,
+  });
+}
+
+function validateStorylineDialogues(storyline) {
+  traverse(storyline).forEach(function nodeCallback(node) {
+    if (this.key === 'dialogue') {
+      try {
+        validateDialogue(buildStorylineDialogue(node));
+      } catch (err) {
+        throw new Error(`Error validating dialogue at ${this.path.join('.')}: ${err.message}`);
+      }
+      this.update(node, true); // Don't traverse into dialogue
+    }
+    if (this.key === 'dialogues') {
+      Object.keys(node).forEach((npcId) => {
+        try {
+          validateDialogue(buildStorylineDialogue(node[npcId]));
+        } catch (err) {
+          throw new Error(`Error validating dialogue at ${this.path.join('.')}.${npcId}: ${err.message}`);
+        }
+      });
+      this.update(node, true); // Don't traverse into dialogues
+    }
+  });
+}
+
 function validateStorylineEndingDialogue(storyline) {
   if (storyline?.ending?.dialogue) {
     const dialogue = fromJson({
@@ -190,11 +258,13 @@ function validateStorylineUsingSchema(storylineDefinition) {
  */
 function validateStoryline(storyline) {
   validateStorylineUsingSchema(storyline);
+  validateStorylineTexts(storyline);
   validateStorylineQuestNpcs(storyline);
   validateStorylineQuestRequirements(storyline);
   validateStorylineQuestActivatesItself(storyline);
   validateExpressions(storyline);
   validateStorylineQuestCompletes(storyline);
+  validateStorylineDialogues(storyline);
   validateStorylineEndingDialogue(storyline);
 }
 

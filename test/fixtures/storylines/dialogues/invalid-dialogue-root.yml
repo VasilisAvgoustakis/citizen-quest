@@ -1,0 +1,12 @@
+decision: "..."
+prompt: "..."
+npcs: {}
+quests: {}
+dialogues:
+  default:
+    - id: 'aKey'
+      text: 'Hello'
+    - id: 'aKey'
+      text: 'Goodbye'
+ending:
+  dialogue: []

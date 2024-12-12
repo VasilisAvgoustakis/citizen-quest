@@ -1,0 +1,14 @@
+decision: "..."
+prompt: "..."
+npcs:
+  mayor:
+    name: 'Mayor'
+    spawn: { x: 0, y: 0 }
+    dialogue:
+      - id: 'aKey'
+        text: 'Hello'
+      - id: 'aKey'
+        text: 'Goodbye'
+quests: {}
+ending:
+  dialogue: []

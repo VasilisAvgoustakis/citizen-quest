@@ -79,6 +79,41 @@ describe('Storyline validation', () => {
     });
   });
 
+  describe('texts', () => {
+    it('should validate the decision text', () => {
+      const storyline = loadFixture('texts/bad-decision-text.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'de\'');
+    });
+    it('should validate the storyline prompt text', () => {
+      const storyline = loadFixture('texts/bad-prompt-text.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'es\'');
+    });
+    it('should validate npc name texts', () => {
+      const storyline = loadFixture('texts/bad-npc-name.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'es\'');
+    });
+    it('should validate quest prompt texts', () => {
+      const storyline = loadFixture('texts/bad-quest-prompt.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'de\'');
+    });
+    it('should validate quest progressive prompt texts', () => {
+      const storyline = loadFixture('texts/bad-quest-progressive-prompt.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'en\'');
+    });
+    it('should validate dialogue texts', () => {
+      const storyline = loadFixture('texts/bad-dialogue-text.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'en\'');
+    });
+    it('should validate dialogue response texts', () => {
+      const storyline = loadFixture('texts/bad-dialogue-response-text.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'de\'');
+    });
+    it('should validate dialogue response thenTexts', () => {
+      const storyline = loadFixture('texts/bad-dialogue-response-then-text.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Missing text for language \'de\'');
+    });
+  });
+
   describe('references', () => {
     it('should validate that quests reference existing NPCs', () => {
       const storyline = loadFixture('references/bad-npc-reference.yml');
@@ -124,6 +159,41 @@ describe('Storyline validation', () => {
   });
 
   describe('dialogues', () => {
+    it('should validate dialogues in the root', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-root.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at dialogues');
+    });
+
+    it('should validate dialogues in npc definitions', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-npcs.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at npcs.mayor.dialogue');
+    });
+
+    it('should validate dialogues in quests', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-quest.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at quests.basicQuest.dialogues');
+    });
+
+    it('should validate dialogues in the available stage of quests', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-quest-available.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at quests.basicQuest.available.dialogue');
+    });
+
+    it('should validate dialogues in the first stages of quests', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-quest-stage-1.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at quests.basicQuest.stages.0.dialogue');
+    });
+
+    it('should validate dialogues in other stages of quests', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-quest-stage-2.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at quests.basicQuest.stages.1.dialogue');
+    });
+
+    it('should validate the ending dialogue', () => {
+      const storyline = loadFixture('dialogues/invalid-dialogue-quest-ending.yml');
+      expect(() => validateStoryline(storyline)).to.throw('Error validating dialogue at ending.dialogue');
+    });
+
     it('should validate that the ending dialogue doesn\'t have nodes with resposes', () => {
       const storyline = loadFixture('dialogues/bad-ending-responses.yml');
       expect(() => validateStoryline(storyline)).to.throw('Ending dialogue nodes must not have responses');
