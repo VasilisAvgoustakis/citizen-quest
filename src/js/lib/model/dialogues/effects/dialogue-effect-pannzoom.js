@@ -49,6 +49,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
     }, startPosition.x, startPosition.y);
     this.drone.setTargets([targetCoordinates]);
     this.drone.events.once('reachedAllTargets', () => {
+      clearTimeout(this.displayTimer);
       this.displayTimer = setTimeout(() => {
         doneCallback();
       }, this.options.displayDuration);
@@ -61,6 +62,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
   }
 
   onEnding(doneCallback) {
+    clearTimeout(this.displayTimer);
     this.displayTimer = setTimeout(() => {
       this.drone.setTargets([{ x: this.savedTarget.x, y: this.savedTarget.y }]);
       this.drone.events.once('reachedAllTargets', () => {
@@ -72,6 +74,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
 
   terminate() {
     clearTimeout(this.displayTimer);
+    this.drone.stop();
     this.restoreCameraPreset(true);
   }
 

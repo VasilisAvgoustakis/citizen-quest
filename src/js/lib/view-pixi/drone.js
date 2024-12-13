@@ -41,6 +41,13 @@ class Drone {
     }
   }
 
+  stop() {
+    this.speed = 0;
+    this.pauseCounter = 0;
+    this.targets = [];
+    this.reachedAllTargets = true;
+  }
+
   animate(time) {
     if (this.reachedAllTargets === true || this.targets.length === 0) {
       return;

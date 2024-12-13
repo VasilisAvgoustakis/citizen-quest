@@ -110,8 +110,8 @@ class DialogueSequencer {
 
   terminate() {
     this.events.emit('terminate');
-    this.setUiState(null);
     this.terminateAllEffects();
+    this.setUiState(null);
     this.dialogueOverlay.hide();
     this.dialogueIterator = null;
     this.dialogue = null;

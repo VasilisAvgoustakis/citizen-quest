@@ -53260,8 +53260,8 @@ class DialogueSequencer {
 
   terminate() {
     this.events.emit('terminate');
-    this.setUiState(null);
     this.terminateAllEffects();
+    this.setUiState(null);
     this.dialogueOverlay.hide();
     this.dialogueIterator = null;
     this.dialogue = null;
@@ -53644,6 +53644,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
     }, startPosition.x, startPosition.y);
     this.drone.setTargets([targetCoordinates]);
     this.drone.events.once('reachedAllTargets', () => {
+      clearTimeout(this.displayTimer);
       this.displayTimer = setTimeout(() => {
         doneCallback();
       }, this.options.displayDuration);
@@ -53656,6 +53657,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
   }
 
   onEnding(doneCallback) {
+    clearTimeout(this.displayTimer);
     this.displayTimer = setTimeout(() => {
       this.drone.setTargets([{ x: this.savedTarget.x, y: this.savedTarget.y }]);
       this.drone.events.once('reachedAllTargets', () => {
@@ -53667,6 +53669,7 @@ class DialogueEffectPanNZoom extends DialogueEffect {
 
   terminate() {
     clearTimeout(this.displayTimer);
+    this.drone.stop();
     this.restoreCameraPreset(true);
   }
 
@@ -56949,6 +56952,13 @@ class Drone {
     } else {
       this.pauseCounter = this.options.pauseBetweenTargets;
     }
+  }
+
+  stop() {
+    this.speed = 0;
+    this.pauseCounter = 0;
+    this.targets = [];
+    this.reachedAllTargets = true;
   }
 
   animate(time) {
@@ -61791,4 +61801,4 @@ const { configureLogger } = __webpack_require__(/*! ./lib/helpers/configure-logg
 
 /******/ })()
 ;
-//# sourceMappingURL=default.9c6d39a72f1ba843107f.js.map
+//# sourceMappingURL=default.f628ced4ba6142f3be16.js.map
