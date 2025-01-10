@@ -234,7 +234,9 @@ class MapApp {
 
   removeScenery(id) {
     if (this.sceneryViews[id]) {
-      this.townView.mainLayer.removeChild(this.sceneryViews[id].display);
+      const sceneryView = this.sceneryViews[id];
+      this.townView.mainLayer.removeChild(sceneryView.display);
+      sceneryView.destroy();
       delete this.sceneryViews[id];
     }
   }
@@ -242,6 +244,7 @@ class MapApp {
   clearScenery() {
     Object.values(this.sceneryViews).forEach((sceneryView) => {
       this.townView.mainLayer.removeChild(sceneryView.display);
+      sceneryView.destroy();
     });
     this.sceneryViews = [];
   }
