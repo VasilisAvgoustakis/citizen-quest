@@ -89,6 +89,12 @@ const { configureLogger } = require('./lib/helpers/configure-logger');
       playerApp.stats.showPanel(statsPanel);
     }
 
+    if (window.CQ === undefined) {
+      window.CQ = {
+        playerApp,
+      };
+    }
+
     if (liveTest) {
       window.IMAGINARY.liveTestManager.run(playerApp, liveTest);
     }

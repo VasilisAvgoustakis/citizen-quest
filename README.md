@@ -101,6 +101,12 @@ The following keyboard shortcuts are available in the map app:
 - 'd': Toggle stats panel. Each press of 'd' toggles to a different panel.
 - 'f': Dumps flags to the javascript console.
 
+### Globals
+
+The PlayerApp object can be accessed through the `CQ.playerApp` global variable in the browser console.
+
+The MapApp object can be accessed through the `CQ.mapApp` global variable in the browser console.
+
 ## Credits
 
 Developed by Eric Londaits and Christian Stussak for IMAGINARY gGmbH. 

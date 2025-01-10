@@ -51,6 +51,12 @@ const { configureLogger } = require('./lib/helpers/configure-logger');
     if (statsPanel) {
       playerApp.stats.showPanel(statsPanel);
     }
+
+    if (window.CQ === undefined) {
+      window.CQ = {
+        playerApp,
+      };
+    }
   } catch (err) {
     showFatalError(err.message, err);
     logger.error(err);

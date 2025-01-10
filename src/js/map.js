@@ -110,6 +110,12 @@ const { configureLogger } = require('./lib/helpers/configure-logger');
     if (statsPanel) {
       mapApp.stats.showPanel(statsPanel);
     }
+
+    if (window.CQ === undefined) {
+      window.CQ = {
+        mapApp,
+      };
+    }
   } catch (err) {
     showFatalError(err.message, err);
     logger.error(err);
